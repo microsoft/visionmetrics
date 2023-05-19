@@ -1,4 +1,4 @@
-# visionmetrics [WIP]
+# visionmetrics [WIP :construction:]
 
 This repo contains evaluation metrics for vision tasks such as classification, object detection, image caption, and image matting.
 
