@@ -16,8 +16,8 @@ class TestClassification(unittest.TestCase):
         gts = [[0.333, 0.333, 0.333], [0.5, 0.5, 0.333]]
 
         for i, (targets, predictions) in enumerate(zip(self.TARGETS, self.PREDICTIONS)):
-            for j, threshold in enumerate(['0.3', '0.5', '0.7']):
-                metric = ThresholdAccuracy(num_labels=3, threshold=float(threshold))
+            for j, threshold in enumerate([0.3, 0.5, 0.7]):
+                metric = ThresholdAccuracy(num_labels=3, threshold=threshold)
                 metric.update(predictions, targets)
                 metric_output = metric.compute()[f"accuracy_thres={threshold}"].item()
                 self.assertAlmostEqual(metric_output, gts[i][j], places=3)
