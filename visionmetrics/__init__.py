@@ -1,2 +1,2 @@
 
-from visionmetrics.classification import ThresholdAccuracy
+from visionmetrics.classification import MulticlassAccuracy, MultilabelAccuracy
