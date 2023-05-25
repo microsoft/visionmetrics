@@ -1,2 +1,2 @@
 
-from visionmetrics.classification import MulticlassAccuracy, MultilabelAccuracy
+from visionmetrics.classification import Accuracy, Precision, AveragePrecision
