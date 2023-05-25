@@ -2,10 +2,10 @@ import unittest
 
 import numpy as np
 import torch
-from vision_evaluation import TopKAccuracyEvaluator, PrecisionEvaluator, AveragePrecisionEvaluator, ThresholdAccuracyEvaluator
+from vision_evaluation import TopKAccuracyEvaluator, PrecisionEvaluator, AveragePrecisionEvaluator, TagWiseAccuracyEvaluator
 from vision_evaluation.prediction_filters import TopKPredictionFilter
 
-from visionmetrics.classification import Accuracy, Precision, AveragePrecision
+from visionmetrics.classification import Accuracy, Precision, AveragePrecision, MultilabelAccuracy
 
 
 class TestClassificationEvaluator(unittest.TestCase):
@@ -71,7 +71,6 @@ class TestClassificationEvaluator(unittest.TestCase):
             vmetric_eval = Precision(task='multiclass', num_classes=num_classes, average='micro', top_k=1)
             vmetric_eval.update(predictions, targets)
             vmetric_top1_prec = vmetric_eval.compute()
-            print(vmetric_top1_prec)
             self.assertAlmostEqual(vmetric_top1_prec, top1_prec_evaluator.get_report(average='samples')['precision_top1'])
 
     def test_average_precision_evaluator(self):
@@ -91,13 +90,43 @@ class TestClassificationEvaluator(unittest.TestCase):
                 vmetric_avg_prec = vmetric_eval.compute()
                 self.assertAlmostEqual(vmetric_avg_prec, gts[i][fl_i], places=5)
 
-    def test_threshold_accuracy_evaluator(self):
-        gts = [[0.4, 0.35, 0.2], [0.355555, 0.4, 0.133333]]
-        for i, (targets, predictions) in enumerate(zip(self.TARGETS, self.PREDICTIONS)):
-            for j, threshold in enumerate(['0.3', '0.5', '0.7']):
-                thresh03_evaluator = ThresholdAccuracyEvaluator(float(threshold))
-                thresh03_evaluator.add_predictions(predictions, targets)
-                self.assertAlmostEqual(thresh03_evaluator.get_report()[f"accuracy_thres={threshold}"], gts[i][j], places=5)
+    def test_tagwise_accuracy_evaluator(self):
+        evaluator = TagWiseAccuracyEvaluator()
+        evaluator.add_predictions(self.PREDICTIONS[0], self.TARGETS[0])
+        result = evaluator.get_report()
+        self.assertAlmostEqual(result['tag_wise_accuracy'][0], 0.33333, 5)
+        self.assertEqual(result['tag_wise_accuracy'][1], 0.5)
+
+        # visionmetrics
+        predictions, targets = torch.from_numpy(self.PREDICTIONS[0]), torch.from_numpy(self.TARGETS[0])
+        vmetric_eval = Accuracy(task='multiclass', num_classes=2, average=None)
+        vmetric_eval.update(predictions, targets)
+        vmetric_tag_wise_acc = vmetric_eval.compute()
+        self.assertAlmostEquals(vmetric_tag_wise_acc[0].item(), 0.33333, 5)
+        self.assertAlmostEquals(vmetric_tag_wise_acc[1].item(), 0.5, 5)
+
+    def test_perclass_accuracy_evaluator_with_missing_class(self):
+        target_missing_class = np.array([0, 1, 0, 0])
+        predicitons_missing_class = np.array([[1, 0, 0],
+                                              [0, 1, 0],
+                                              [0.5, 0.5, 0],
+                                              [0.1, 0.9, 0]])
+        evaluator = TagWiseAccuracyEvaluator()
+        evaluator.add_predictions(predicitons_missing_class, target_missing_class)
+        result = evaluator.get_report()
+        self.assertEqual(len(result['tag_wise_accuracy']), 3)
+        self.assertAlmostEqual(result['tag_wise_accuracy'][0], 0.666666, 5)
+        self.assertEqual(result['tag_wise_accuracy'][1], 1.0)
+        self.assertEqual(result['tag_wise_accuracy'][2], 0.0)
+
+        # visionmetrics
+        target_missing_class, predicitons_missing_class = torch.from_numpy(target_missing_class), torch.from_numpy(predicitons_missing_class)
+        vmetric_eval = Accuracy(task='multiclass', num_classes=3, average=None)
+        vmetric_eval.update(predicitons_missing_class, target_missing_class)
+        vmetric_tag_wise_acc = vmetric_eval.compute()
+        self.assertAlmostEqual(vmetric_tag_wise_acc[0].item(), 0.666666, 5)
+        self.assertEqual(vmetric_tag_wise_acc[1].item(), 1.0, 5)
+        self.assertEqual(vmetric_tag_wise_acc[2].item(), 0.0, 5)
 
 
 if __name__ == "__main__":
