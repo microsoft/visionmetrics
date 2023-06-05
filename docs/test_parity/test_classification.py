@@ -1,9 +1,10 @@
 import unittest
+from cv2 import threshold
 
 import numpy as np
 import torch
-from vision_evaluation import TopKAccuracyEvaluator, PrecisionEvaluator, AveragePrecisionEvaluator, TagWiseAccuracyEvaluator
-from vision_evaluation.prediction_filters import TopKPredictionFilter
+from vision_evaluation import TopKAccuracyEvaluator, PrecisionEvaluator, AveragePrecisionEvaluator, TagWiseAccuracyEvaluator, TagWiseAveragePrecisionEvaluator
+from vision_evaluation.prediction_filters import TopKPredictionFilter, ThresholdPredictionFilter
 
 from visionmetrics.classification import Accuracy, Precision, AveragePrecision, MultilabelAccuracy
 
@@ -127,6 +128,66 @@ class TestClassificationEvaluator(unittest.TestCase):
         self.assertAlmostEqual(vmetric_tag_wise_acc[0].item(), 0.666666, 5)
         self.assertEqual(vmetric_tag_wise_acc[1].item(), 1.0, 5)
         self.assertEqual(vmetric_tag_wise_acc[2].item(), 0.0, 5)
+
+    def test_perclass_average_precision_evaluator(self):
+        evaluator = TagWiseAveragePrecisionEvaluator()
+        evaluator.add_predictions(self.PREDICTIONS[0], self.TARGETS[0])
+        result = evaluator.get_report()
+        self.assertAlmostEqual(result['tag_wise_average_precision'][0], 0.54940, 5)
+        self.assertAlmostEqual(result['tag_wise_average_precision'][1], 0.40208, 5)
+
+        # visionmetrics
+        predictions, targets = torch.from_numpy(self.PREDICTIONS[0]), torch.from_numpy(self.TARGETS[0])
+        vmetric_eval = AveragePrecision(task='multiclass', num_classes=2, average=None)
+        vmetric_eval.update(predictions, targets)
+        vmetric_tag_wise_avg_prec = vmetric_eval.compute()
+        self.assertAlmostEqual(vmetric_tag_wise_avg_prec[0].item(), 0.54940, 5)
+        self.assertAlmostEqual(vmetric_tag_wise_avg_prec[1].item(), 0.40208, 5)
+
+
+class TestMultilabelClassificationEvaluator(unittest.TestCase):
+    TARGETS = np.array([[1, 0, 0],
+                        [0, 1, 1],
+                        [1, 1, 1]])
+    PROB_PREDICTIONS = np.array([[1, 0.3, 0],
+                                 [0, 1, 0.5],
+                                 [0.5, 0.6, 0.5]])
+    INDEX_PREDICTIONS = np.array([[0, 1, 2],
+                                  [1, 2, 0],
+                                  [1, 0, 2]])
+
+    def test_precision_evaluator(self):
+        thresholds = [0.0, 0.3, 0.6, 0.7]
+        expectations = [0.66666, 0.88888, 0.66666, 0.66666]
+        for i in range(len(thresholds)):
+            prec_eval = PrecisionEvaluator(ThresholdPredictionFilter(thresholds[i]))
+            prec_eval.add_predictions(self.PROB_PREDICTIONS, self.TARGETS)
+            # print(prec_eval.get_report(average='macro'))
+            self.assertAlmostEqual(prec_eval.get_report(average='macro')[f"precision_thres={thresholds[i]}"], expectations[i], places=4)
+
+            # visionmetrics
+            # predictions, targets = torch.from_numpy(self.PROB_PREDICTIONS), torch.from_numpy(self.TARGETS)
+            # # predictions, targets = predictions.unsqueeze(0), targets.unsqueeze(0)
+            # vmetric_eval = Precision(task='multilabel', num_labels=3, average='macro', threshold=thresholds[i])
+            # vmetric_eval.update(predictions, targets)
+            # vmetric_prec = vmetric_eval.compute()
+            # self.assertAlmostEqual(vmetric_prec.item(), expectations[i], places=4)
+
+    def test_precision_evaluator_samplewise(self):
+        thresholds = [0.0, 0.3, 0.6, 0.7]
+        expectations = [0.66666, 0.83333, 1.0, 0.66666]
+        for i in range(len(thresholds)):
+            prec_eval = PrecisionEvaluator(ThresholdPredictionFilter(thresholds[i]))
+            prec_eval.add_predictions(self.PROB_PREDICTIONS, self.TARGETS)
+            self.assertAlmostEqual(prec_eval.get_report(average='samples')[f"precision_thres={thresholds[i]}"], expectations[i], places=4)
+
+            # visionmetrics
+            predictions, targets = torch.from_numpy(self.PROB_PREDICTIONS), torch.from_numpy(self.TARGETS)
+            predictions, targets = predictions.unsqueeze(0), targets.unsqueeze(0)
+            vmetric_eval = Precision(task='multilabel', num_labels=3, threshold=thresholds[i], multidim_average='samplewise', average='macro')
+            vmetric_eval.update(predictions, targets)
+            vmetric_prec = vmetric_eval.compute()
+            self.assertAlmostEqual(vmetric_prec.item(), expectations[i], places=4)
 
 
 if __name__ == "__main__":
