@@ -28,14 +28,12 @@ class TestTopKPredictionFilter(unittest.TestCase):
     K = [0, 1, 2, 3]
 
     def test_topk_prediction_filter_prob_mode(self):
-
         for i, k in enumerate(self.K):
             pred_filter = TopKPredictionFilter(k=k, prediction_mode='prob')
             topk_preds = pred_filter.filter(self.PROB_PREDS, return_mode='vec')
             assert torch.equal(topk_preds, self.EXPECTED_TOPK_PREDS[i])
 
     def test_topk_prediction_filter_indices_mode(self):
-
         for i, k in enumerate(self.K):
             pred_filter = TopKPredictionFilter(k=k, prediction_mode='indices')
             topk_preds = pred_filter.filter(self.INDEX_PREDS, return_mode='vec')

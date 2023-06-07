@@ -9,12 +9,11 @@ class MultilabelPrecision(torchmetrics.classification.MultilabelPrecision):
         self.prediction_mode = prediction_mode
 
     def update(self, predictions, targets):
-        if self.top_k is None:
-            self.top_k = predictions.shape[1]
-
-        if self.prediction_mode == 'prob':
+        # torchmetrics only supports prob mode
+        if self.top_k is None and self.prediction_mode == 'prob':
             super().update(predictions, targets)
         else:
+            self.top_k = predictions.shape[1] if self.top_k is None else self.top_k
             pred_filter = TopKPredictionFilter(k=self.top_k, prediction_mode=self.prediction_mode)
             topk_preds = pred_filter.filter(predictions)
             super().update(topk_preds, targets)
