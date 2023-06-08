@@ -44,7 +44,6 @@ class TopKPredictionFilter:
             return list(top_k_pred_indices)
         else:
             preds = torch.zeros_like(predictions, dtype=int)
-            # row_index = np.repeat(range(len(predictions)), k)
             row_index = torch.arange(predictions.shape[0]).repeat_interleave(k)
             col_index = top_k_pred_indices.reshape((1, -1))
             preds[row_index, col_index] = 1
