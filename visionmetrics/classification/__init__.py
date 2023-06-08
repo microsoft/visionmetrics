@@ -2,4 +2,4 @@
 from torchmetrics.classification import Accuracy
 
 # Import custom metrics from visionmetrics
-from visionmetrics.classification.threshold_accuracy import ThresholdAccuracy
+from visionmetrics.classification.precision import MultilabelPrecision
