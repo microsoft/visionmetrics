@@ -46,6 +46,7 @@ class TopKPredictionFilter:
             preds = torch.zeros_like(predictions, dtype=int)
             row_index = torch.arange(predictions.shape[0]).repeat_interleave(k)
             col_index = top_k_pred_indices.reshape((1, -1))
+            row_index, col_index = row_index.type(torch.LongTensor), col_index.type(torch.LongTensor)
             preds[row_index, col_index] = 1
 
             return preds
