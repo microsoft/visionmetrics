@@ -11,7 +11,8 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
         super().update(predictions, targets)
 
     def _preprocess(self, predictions, targets):
-        """torchmetrics implementation of MeanAveragePrecision expects predictions and targets to be a list of dictionaries
+        """torchmetrics implementation of MeanAveragePrecision expects predictions and targets to be a list of dictionaries. Each dictionary corresponds to a single image.
+            Default box format is 'xyxy' (xmin, ymin, xmax, ymax).
         """
         _predictions = []
         _targets = []
@@ -29,7 +30,7 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
             'scores': torch.empty(0),
         }
         for box in boxes:
-            assert len(box) >= 5  # [label, score, x1, y1, x2, y2] or [label, x1, y1, x2, y2]
+            assert len(box) >= 5  # e.g. [label, score, xmin, ymin, xmax, ymax] or [label, xmin, ymin, xmax, ymax]
             boxes_per_image['boxes'] = torch.tensor(box[-4:]) if boxes_per_image['boxes'].numel() == 0 else torch.vstack((boxes_per_image['boxes'], torch.tensor(box[-4:])))
             boxes_per_image['labels'] = torch.tensor(box[0]) if boxes_per_image['labels'].numel() == 0 else torch.vstack((boxes_per_image['labels'], torch.tensor(box[0])))
             if scores:
