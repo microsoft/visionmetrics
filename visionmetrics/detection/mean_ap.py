@@ -16,56 +16,30 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
         _predictions = []
         _targets = []
         for prediction, target in zip(predictions, targets):
-            _predictions.append(self._convert_prediction_to_dict(prediction))
-            _targets.append(self._convert_target_to_dict(target))
+            _predictions.append(self._convert_to_dict(prediction))
+            _targets.append(self._convert_to_dict(target, scores=False))
 
         return _predictions, _targets
 
     @staticmethod
-    def _convert_prediction_to_dict(prediction):
-        _prediction = {
+    def _convert_to_dict(boxes, scores=True):
+        boxes_per_image = {
             'boxes': torch.empty(0, 4),
+            'labels': torch.empty(0),
             'scores': torch.empty(0),
-            'labels': torch.empty(0),
         }
-        for single_prediction in prediction:
-            assert len(single_prediction) == 6  # [label, score, x1, y1, x2, y2]
-            _prediction['boxes'] = torch.tensor(single_prediction[-4:]) if _prediction['boxes'].numel() == 0 else torch.vstack((_prediction['boxes'], torch.tensor(single_prediction[-4:])))
-            _prediction['scores'] = torch.tensor(single_prediction[1]) if _prediction['scores'].numel() == 0 else torch.vstack((_prediction['scores'], torch.tensor(single_prediction[1])))
-            _prediction['labels'] = torch.tensor(single_prediction[0]) if _prediction['labels'].numel() == 0 else torch.vstack((_prediction['labels'], torch.tensor(single_prediction[0])))
+        for box in boxes:
+            assert len(box) >= 5  # [label, score, x1, y1, x2, y2] or [label, x1, y1, x2, y2]
+            boxes_per_image['boxes'] = torch.tensor(box[-4:]) if boxes_per_image['boxes'].numel() == 0 else torch.vstack((boxes_per_image['boxes'], torch.tensor(box[-4:])))
+            boxes_per_image['labels'] = torch.tensor(box[0]) if boxes_per_image['labels'].numel() == 0 else torch.vstack((boxes_per_image['labels'], torch.tensor(box[0])))
+            if scores:
+                boxes_per_image['scores'] = torch.tensor(box[1]) if boxes_per_image['scores'].numel() == 0 else torch.vstack((boxes_per_image['scores'], torch.tensor(box[1])))
 
-        _prediction['boxes'] = _prediction['boxes'].reshape(-1, 4)
-        _prediction['labels'] = _prediction['labels'].reshape(-1)
-        _prediction['scores'] = _prediction['scores'].reshape(-1)
-        return _prediction
+        boxes_per_image['boxes'] = boxes_per_image['boxes'].reshape(-1, 4)  # [N, 4]
+        boxes_per_image['labels'] = boxes_per_image['labels'].reshape(-1)  # [N]
+        boxes_per_image['scores'] = boxes_per_image['scores'].reshape(-1)  # [N]
 
-    @staticmethod
-    def _convert_target_to_dict(target):
-        _targets = {
-            'boxes': torch.empty(0, 4),
-            'labels': torch.empty(0),
-        }
-        for single_target in target:
-            assert len(single_target) == 5  # [label, x1, y1, x2, y2]
-            _targets['boxes'] = torch.tensor(single_target[-4:]) if _targets['boxes'].numel() == 0 else torch.vstack((_targets['boxes'], torch.tensor(single_target[-4:])))
-            _targets['labels'] = torch.tensor(single_target[0]) if _targets['labels'].numel() == 0 else torch.vstack((_targets['labels'], torch.tensor(single_target[0])))
+        if not scores:
+            boxes_per_image.pop('scores')
 
-        _targets['boxes'] = _targets['boxes'].reshape(-1, 4)
-        _targets['labels'] = _targets['labels'].reshape(-1)
-        return _targets
-
-
-# if __name__ == '__main__':
-
-#     metric = MeanAveragePrecision()
-
-#     predictions = [[[0, 1.0, 0, 0, 1, 1],
-#                     [1, 1.0, 0.5, 0.5, 1, 1],
-#                     [2, 1.0, 0.1, 0.1, 0.5, 0.5]]]
-
-#     targets = [[[0, 0, 0, 1, 1],
-#                 [1, 0.5, 0.5, 1, 1],
-#                 [2, 0.1, 0.1, 0.5, 0.5]]]
-
-#     metric.update(predictions, targets)
-#     print(metric.compute())
+        return boxes_per_image

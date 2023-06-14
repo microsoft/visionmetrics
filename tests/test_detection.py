@@ -1,11 +1,9 @@
-import re
 import unittest
 
 from visionmetrics.detection import MeanAveragePrecision
 
 
 class TestDetection(unittest.TestCase):
-
     def test_perfect_one_image_absolute_coordinates(self):
 
         PREDICTIONS = [[[0, 1.0, 0, 0, 10, 10],
@@ -65,98 +63,98 @@ class TestDetection(unittest.TestCase):
 
     def test_two_batches(self):
 
-        predictions = [[[0, 1.0, 0, 0, 1, 1],
+        PREDICTIONS = [[[0, 1.0, 0, 0, 1, 1],
                         [1, 1.0, 0.5, 0.5, 1, 1]],
                        [[2, 1.0, 0.1, 0.1, 0.5, 0.5]]]
 
-        targets = [[[0, 0, 0, 1, 1],
+        TARGETS = [[[0, 0, 0, 1, 1],
                     [1, 0.5, 0.5, 1, 1]],
                    [[2, 0.1, 0.1, 0.5, 0.5]]]
 
         metric = MeanAveragePrecision()
-        metric.update(predictions, targets)
+        metric.update(PREDICTIONS, TARGETS)
 
-        predictions = [[[0, 1.0, 0.9, 0.9, 1, 1],  # Wrong
+        PREDICTIONS = [[[0, 1.0, 0.9, 0.9, 1, 1],  # Wrong
                         [1, 1.0, 0.5, 0.5, 1, 1]],
                        [[2, 1.0, 0.1, 0.1, 0.5, 0.5]]]
 
-        targets = [[[0, 0, 0, 1, 1],
+        TARGETS = [[[0, 0, 0, 1, 1],
                     [1, 0.5, 0.5, 1, 1]],
                    [[2, 0.1, 0.1, 0.5, 0.5]]]
 
-        metric.update(predictions, targets)
+        metric.update(PREDICTIONS, TARGETS)
 
         result = metric.compute()
         self.assertAlmostEqual(result['map_50'].item(), 0.834983, places=5)
 
     def test_iou_thresholds(self):
         metric = MeanAveragePrecision(iou_thresholds=[0.5])
-        predictions = [[[0, 1.0, 0.5, 0.5, 1, 1],
+        PREDICTIONS = [[[0, 1.0, 0.5, 0.5, 1, 1],
                         [1, 1.0, 0.5, 0.5, 1, 1]]]
 
-        targets = [[[0, 0, 0, 1, 1],
+        TARGETS = [[[0, 0, 0, 1, 1],
                     [1, 0.5, 0.5, 1, 1]]]
 
-        metric.update(predictions, targets)
+        metric.update(PREDICTIONS, TARGETS)
         result = metric.compute()
         self.assertAlmostEqual(result['map_50'].item(), 0.5, places=5)
 
         metric = MeanAveragePrecision(iou_thresholds=[0.2])
-        predictions = [[[0, 1.0, 0.5, 0.5, 1, 1],
+        PREDICTIONS = [[[0, 1.0, 0.5, 0.5, 1, 1],
                         [1, 1.0, 0.5, 0.5, 1, 1]]]
 
-        targets = [[[0, 0, 0, 1, 1],
+        TARGETS = [[[0, 0, 0, 1, 1],
                     [1, 0.5, 0.5, 1, 1]]]
 
-        metric.update(predictions, targets)
+        metric.update(PREDICTIONS, TARGETS)
         result = metric.compute()
         self.assertAlmostEqual(result['map'].item(), 1.0, places=5)
 
     def test_no_predictions(self):
-        predictions = [[]]
-        targets = [[[0, 0, 0, 1, 1],
+        PREDICTIONS = [[]]
+        TARGETS = [[[0, 0, 0, 1, 1],
                     [1, 0.5, 0.5, 1, 1],
                     [2, 0.1, 0.1, 0.5, 0.5]]]
 
         metric = MeanAveragePrecision()
-        metric.update(predictions, targets)
+        metric.update(PREDICTIONS, TARGETS)
         result = metric.compute()
         self.assertAlmostEqual(result['map_50'].item(), 0.0, places=5)
 
     def test_no_targets(self):
-        predictions = [[[0, 1.0, 0, 0, 1, 1],
+        PREDICTIONS = [[[0, 1.0, 0, 0, 1, 1],
                         [1, 1.0, 0.5, 0.5, 1, 1],
                         [2, 1.0, 0.1, 0.1, 0.5, 0.5]]]
-        targets = [[]]
+        TARGETS = [[]]
 
         metric = MeanAveragePrecision(iou_thresholds=[0.5])
-        metric.update(predictions, targets)
+        metric.update(PREDICTIONS, TARGETS)
         result = metric.compute()
         self.assertAlmostEqual(result['map_50'].item(), -1, places=5)
 
     def test_cat_id_remap(self):
-        predictions = [[(0, 1.0, 0, 0, 1, 1),
+        PREDICTIONS = [[(0, 1.0, 0, 0, 1, 1),
                         [1, 1.0, 0.5, 0.5, 1, 1],
                         [2, 1.0, 0.1, 0.1, 0.5, 0.5]]]
 
-        targets = [[[0, 0, 0, 1, 1],
+        TARGETS = [[[0, 0, 0, 1, 1],
                     [0, 0.5, 0.5, 1, 1],
                     [2, 0.1, 0.1, 0.5, 0.5]]]
 
         metric = MeanAveragePrecision(iou_thresholds=[0.5])
-        metric.update(predictions, targets)
+        metric.update(PREDICTIONS, TARGETS)
         result = metric.compute()
 
-        predictions_remap_cat_id = [[[0, 1.0, 0, 0, 1, 1],
+        PREDICTIONS_REMAP_CAT_ID = [[[0, 1.0, 0, 0, 1, 1],
                                      [2, 1.0, 0.5, 0.5, 1, 1],
                                      [1, 1.0, 0.1, 0.1, 0.5, 0.5]]]
 
-        targets_remap_cat_id = [[[0, 0, 0, 1, 1],
+        TARGETS_REMAP_CAT_ID = [[[0, 0, 0, 1, 1],
                                  [0, 0.5, 0.5, 1, 1],
                                  [1, 0.1, 0.1, 0.5, 0.5]]]
 
         metric = MeanAveragePrecision(iou_thresholds=[0.5])
-        metric.update(predictions_remap_cat_id, targets_remap_cat_id)
+        metric.update(PREDICTIONS_REMAP_CAT_ID, TARGETS_REMAP_CAT_ID)
         result_remap_cat_id = metric.compute()
 
         for k in result.keys():
