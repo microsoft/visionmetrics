@@ -1,5 +1,13 @@
 # Import metrics directly from torchmetrics
-from torchmetrics.classification import Accuracy
+from torchmetrics.classification import (MulticlassAccuracy, MulticlassAUROC,
+                                         MulticlassAveragePrecision,
+                                         MulticlassCalibrationError,
+                                         MulticlassConfusionMatrix,
+                                         MulticlassPrecision, MulticlassRecall,
+                                         MultilabelAccuracy, MultilabelAUROC, MultilabelConfusionMatrix,
+                                         MultilabelAveragePrecision)
 
 # Import custom metrics from visionmetrics
-from visionmetrics.classification.precision import MultilabelPrecision
+from visionmetrics.classification.precision_recall import (MultilabelF1Score,
+                                                           MultilabelPrecision,
+                                                           MultilabelRecall)
