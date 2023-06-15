@@ -2,11 +2,12 @@ import unittest
 
 import torch
 
-from visionmetrics.classification import (MulticlassAccuracy,
+from visionmetrics.classification import (BinaryAUROC, MulticlassAccuracy,
+                                          MulticlassAUROC,
                                           MulticlassAveragePrecision,
                                           MulticlassCalibrationError,
                                           MulticlassPrecision,
-                                          MultilabelAccuracy,
+                                          MultilabelAccuracy, MultilabelAUROC,
                                           MultilabelAveragePrecision,
                                           MultilabelF1Score,
                                           MultilabelPrecision,
@@ -214,6 +215,51 @@ class TestMultilabelClassification(unittest.TestCase):
             vmetric_eval.update(predictions, targets)
             vmetric_avg_prec = vmetric_eval.compute()
             self.assertAlmostEqual(vmetric_avg_prec.item(), gts[fl_i], places=5)
+
+
+class TestROCAUC(unittest.TestCase):
+    @staticmethod
+    def _get_metric(predictions, targets, task='multiclass', num_classes=None, average='macro'):
+        if task == 'binary':
+            metric = BinaryAUROC(num_classes=num_classes, average=average)
+        elif task == 'multiclass':
+            metric = MulticlassAUROC(num_classes=num_classes, average=average)
+        else:
+            metric = MultilabelAUROC(num_labels=num_classes, average=average)
+
+        metric.update(predictions, targets)
+        roc_auc = metric.compute()
+        return roc_auc
+
+    def test_perfect_predictions(self):
+        predictions = torch.tensor([0, 0.1, 0.2, 0.3, 0.4, 0.5])
+        targets = torch.tensor([0, 0, 0, 1, 1, 1])
+        roc_auc = self._get_metric(predictions, targets, task='binary', num_classes=2)
+        self.assertAlmostEqual(roc_auc.item(), 1.0, places=4)
+
+    def test_abysmal_predictions(self):
+        predictions = torch.tensor([0, 0.1, 0.2, 0.3, 0.4, 0.5])
+        targets = torch.tensor([1, 1, 1, 0, 0, 0])
+        roc_auc = self._get_metric(predictions, targets, task='binary', num_classes=2)
+        self.assertAlmostEqual(roc_auc.item(), 0.0, places=4)
+
+    def test_imperfect_predictions(self):
+        predictions = torch.tensor([0, 0.1, 0.2, 0.3, 0.4, 0.5])
+        targets = torch.tensor([0, 0, 0, 1, 0, 1])
+        roc_auc = self._get_metric(predictions, targets, task='binary', num_classes=2)
+        self.assertAlmostEqual(roc_auc.item(), 0.875, places=4)
+
+    def test_multiclass_perfect_predictions(self):
+        predictions = torch.tensor([[0.8, 0.2, 0.0], [0.7, 0.2, 0.1], [0.1, 0.6, 0.3], [0.2, 0.7, 0.1], [0.1, 0.3, 0.6], [0.1, 0.3, 0.6]])
+        targets = torch.tensor([0, 0, 1, 1, 2, 2])
+        roc_auc = self._get_metric(predictions, targets, task='multiclass', num_classes=3)
+        self.assertAlmostEqual(roc_auc.item(), 1.0, places=4)
+
+    def test_multilabel_perfect_predictions(self):
+        predictions = torch.tensor([[0.8, 0.2, 0.0], [0.7, 0.2, 0.1], [0.1, 0.6, 0.3], [0.2, 0.7, 0.1], [0.1, 0.3, 0.6], [0.1, 0.3, 0.6]])
+        targets = torch.tensor([[1, 0, 0], [1, 0, 0], [0, 1, 1], [0, 1, 0], [0, 1, 1], [0, 1, 1]])
+        roc_auc = self._get_metric(predictions, targets, task='multilabel', num_classes=3)
+        self.assertAlmostEqual(roc_auc.item(), 1.0, places=4)
 
 
 if __name__ == "__main__":
