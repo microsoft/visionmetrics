@@ -14,33 +14,24 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
         """torchmetrics implementation of MeanAveragePrecision expects predictions and targets to be a list of dictionaries. Each dictionary corresponds to a single image.
             Default box format is 'xyxy' (xmin, ymin, xmax, ymax).
         """
-        _predictions = []
-        _targets = []
-        for prediction, target in zip(predictions, targets):
-            _predictions.append(self._convert_to_dict(prediction))
-            _targets.append(self._convert_to_dict(target, scores=False))
 
-        return _predictions, _targets
+        predictions = [self._convert_to_dict(p) for p in predictions]
+        targets = [self._convert_to_dict(t, scores=False) for t in targets]
+        return predictions, targets
 
     @staticmethod
     def _convert_to_dict(boxes, scores=True):
-        boxes_per_image = {
-            'boxes': torch.empty(0, 4),
-            'labels': torch.empty(0),
-            'scores': torch.empty(0),
-        }
-        for box in boxes:
-            assert len(box) >= 5  # e.g. [label, score, xmin, ymin, xmax, ymax] or [label, xmin, ymin, xmax, ymax]
-            boxes_per_image['boxes'] = torch.tensor(box[-4:]) if boxes_per_image['boxes'].numel() == 0 else torch.vstack((boxes_per_image['boxes'], torch.tensor(box[-4:])))
-            boxes_per_image['labels'] = torch.tensor(box[0]) if boxes_per_image['labels'].numel() == 0 else torch.vstack((boxes_per_image['labels'], torch.tensor(box[0])))
-            if scores:
-                boxes_per_image['scores'] = torch.tensor(box[1]) if boxes_per_image['scores'].numel() == 0 else torch.vstack((boxes_per_image['scores'], torch.tensor(box[1])))
+        """
+        Args:
+            boxes (list): list of boxes. Each box is a list of 6 (or 5 when no score) elements: [label, score, x1, y1, x2, y2]
+        """
+        if not boxes:
+            boxes = torch.empty(0, 6) if scores else torch.empty(0, 5)
+        else:
+            boxes = torch.tensor(boxes) if not isinstance(boxes, torch.Tensor) else boxes
+            boxes = boxes.unsqueeze(0) if len(boxes.shape) == 1 else boxes
 
-        boxes_per_image['boxes'] = boxes_per_image['boxes'].reshape(-1, 4)  # [N, 4]
-        boxes_per_image['labels'] = boxes_per_image['labels'].reshape(-1)  # [N]
-        boxes_per_image['scores'] = boxes_per_image['scores'].reshape(-1)  # [N]
-
-        if not scores:
-            boxes_per_image.pop('scores')
-
-        return boxes_per_image
+        if scores:
+            return {'boxes': boxes[:, -4:].reshape(-1, 4), 'labels': boxes[:, 0].reshape(-1), 'scores': torch.tensor(boxes[:, 1]).reshape(-1)}
+        else:
+            return {'boxes': boxes[:, -4:].reshape(-1, 4), 'labels': boxes[:, 0].reshape(-1), 'scores': torch.tensor(boxes[:, 1]).reshape(-1)}
