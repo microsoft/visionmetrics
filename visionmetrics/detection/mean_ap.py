@@ -3,9 +3,6 @@ from torchmetrics import detection
 
 
 class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def update(self, predictions, targets):
         predictions, targets = self._preprocess(predictions, targets)
         super().update(predictions, targets)
@@ -13,6 +10,10 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
     def _preprocess(self, predictions, targets):
         """torchmetrics implementation of MeanAveragePrecision expects predictions and targets to be a list of dictionaries. Each dictionary corresponds to a single image.
             Default box format is 'xyxy' (xmin, ymin, xmax, ymax).
+
+            Args:
+                predictions: list of predictions [[[label, score, L, T, R, B], ...], [...], ...]
+                targets: list of targets [[[label, L, T, R, B], ...], ...]
         """
 
         predictions = [self._convert_to_dict(p) for p in predictions]
@@ -23,7 +24,7 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
     def _convert_to_dict(boxes, scores=True):
         """
         Args:
-            boxes (list): list of boxes. Each box is a list of 6 (or 5 when no score) elements: [label, score, x1, y1, x2, y2]
+            boxes (list): list of boxes. Each box is a list of 6 (or 5 when no score) elements: [label, score, L, T, R, B]
         """
         if not boxes:
             boxes = torch.empty(0, 6) if scores else torch.empty(0, 5)
