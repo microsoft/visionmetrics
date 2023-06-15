@@ -2,10 +2,12 @@ import unittest
 
 import torch
 
-from visionmetrics.classification import (AveragePrecision, CalibrationError,
-                                          MulticlassAccuracy,
+from visionmetrics.classification import (MulticlassAccuracy,
+                                          MulticlassAveragePrecision,
+                                          MulticlassCalibrationError,
                                           MulticlassPrecision,
-                                          MultilabelAccuracy,
+                                          MulticlassRecall, MultilabelAccuracy,
+                                          MultilabelAveragePrecision,
                                           MultilabelF1Score,
                                           MultilabelPrecision,
                                           MultilabelRecall)
@@ -68,7 +70,7 @@ class TestMulticlassClassification(unittest.TestCase):
         for i, (targets, predictions, num_classes) in enumerate(zip(self.TARGETS, self.PREDICTIONS, self.NUM_CLASSES)):
             for fl_i, flavor in enumerate(['macro', 'weighted']):
                 # NOTE: doesnot support samples-based average for multiclass
-                metric = AveragePrecision(task='multiclass', num_classes=num_classes, average=flavor)
+                metric = MulticlassAveragePrecision(num_classes=num_classes, average=flavor)
                 metric.update(predictions, targets)
                 metric_avg_prec = metric.compute()
                 self.assertAlmostEqual(metric_avg_prec.item(), gts[i][fl_i], places=5)
@@ -76,7 +78,7 @@ class TestMulticlassClassification(unittest.TestCase):
     def test_ece_loss(self):
         gts = [0.584, 0.40800000]
         for i, (targets, predictions) in enumerate(zip(self.TARGETS, self.PREDICTIONS)):
-            metric = CalibrationError(task='multiclass', num_classes=self.NUM_CLASSES[i])
+            metric = MulticlassCalibrationError(num_classes=self.NUM_CLASSES[i])
             metric.update(predictions, targets)
             self.assertAlmostEqual(metric.compute().item(), gts[i], places=5)
 
@@ -84,8 +86,8 @@ class TestMulticlassClassification(unittest.TestCase):
         metric = MulticlassAccuracy(num_classes=self.NUM_CLASSES[0], average=None)
         metric.update(self.PREDICTIONS[0], self.TARGETS[0])
         metric_tag_wise_acc = metric.compute()
-        self.assertAlmostEquals(metric_tag_wise_acc[0].item(), 0.33333, 5)
-        self.assertAlmostEquals(metric_tag_wise_acc[1].item(), 0.5, 5)
+        self.assertAlmostEqual(metric_tag_wise_acc[0].item(), 0.33333, 5)
+        self.assertAlmostEqual(metric_tag_wise_acc[1].item(), 0.5, 5)
 
     def test_perclass_accuracy_with_missing_class(self):
         target_missing_class = torch.tensor([0, 1, 0, 0])
@@ -102,7 +104,7 @@ class TestMulticlassClassification(unittest.TestCase):
         self.assertEqual(metric_tag_wise_acc[2].item(), 0.0, 5)
 
     def test_perclass_average_precision(self):
-        metric = AveragePrecision(task='multiclass', num_classes=2, average=None)
+        metric = MulticlassAveragePrecision(num_classes=2, average=None)
         metric.update(self.PREDICTIONS[0], self.TARGETS[0])
         metric_tag_wise_avg_prec = metric.compute()
         self.assertAlmostEqual(metric_tag_wise_avg_prec[0].item(), 0.54940, 5)
@@ -208,7 +210,7 @@ class TestMultilabelClassification(unittest.TestCase):
         gts = [0.67328, 0.73611, 0.731481]
         for fl_i, flavor in enumerate(['micro', 'macro', 'weighted']):
             # NOTE: doesnot support samples-based average for multilabel
-            vmetric_eval = AveragePrecision(task='multilabel', num_labels=4, average=flavor)
+            vmetric_eval = MultilabelAveragePrecision(num_labels=4, average=flavor)
             vmetric_eval.update(predictions, targets)
             vmetric_avg_prec = vmetric_eval.compute()
             self.assertAlmostEqual(vmetric_avg_prec.item(), gts[fl_i], places=5)
