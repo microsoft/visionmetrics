@@ -1,4 +1,5 @@
 import torchmetrics
+from typing import Literal
 
 from visionmetrics.prediction_filters import TopKPredictionFilter
 
@@ -10,7 +11,7 @@ class MultilabelExtend:
         2. 'indices' prediction_mode
     """
 
-    def __init__(self, top_k=None, prediction_mode='prob'):
+    def __init__(self, top_k: int = None, prediction_mode: Literal['prob', 'indices'] = 'prob'):
         self.top_k = top_k
         self.prediction_mode = prediction_mode
 
