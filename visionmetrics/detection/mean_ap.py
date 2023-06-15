@@ -29,9 +29,8 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
             boxes = torch.empty(0, 6) if scores else torch.empty(0, 5)
         else:
             boxes = torch.tensor(boxes) if not isinstance(boxes, torch.Tensor) else boxes
-            boxes = boxes.unsqueeze(0) if len(boxes.shape) == 1 else boxes
 
         if scores:
-            return {'boxes': boxes[:, -4:].reshape(-1, 4), 'labels': boxes[:, 0].reshape(-1), 'scores': boxes[:, 1].reshape(-1)}
+            return {'boxes': boxes[:, -4:], 'labels': boxes[:, 0], 'scores': boxes[:, 1]}
         else:
-            return {'boxes': boxes[:, -4:].reshape(-1, 4), 'labels': boxes[:, 0].reshape(-1)}
+            return {'boxes': boxes[:, -4:], 'labels': boxes[:, 0]}
