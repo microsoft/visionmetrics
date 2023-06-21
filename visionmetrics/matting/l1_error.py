@@ -1,5 +1,6 @@
 import numpy as np
-from .matting_eval_base import MattingEvaluatorBase
+import torch
+from visionmetrics.matting.matting_eval_base import MattingEvaluatorBase
 
 
 class L1ErrorEvaluator(MattingEvaluatorBase):
@@ -21,7 +22,7 @@ class L1ErrorEvaluator(MattingEvaluatorBase):
 
         self._num_samples += len(predictions)
         for pred_mask, gt_mask in zip(predictions, targets):
-            pred_mask = np.asarray(pred_mask)
-            gt_mask = np.asarray(gt_mask)
-            mean_l1 = np.abs(pred_mask.astype(float)-gt_mask.astype(float)).mean()
-            self._metric_sum += mean_l1
+            pred_mask = torch.tensor(np.array(pred_mask))
+            gt_mask = torch.tensor(np.array(gt_mask))
+            mean_l1 = torch.abs(pred_mask.to(torch.float)-gt_mask.to(torch.float)).mean()
+            self._metric_sum += mean_l1.numpy()
