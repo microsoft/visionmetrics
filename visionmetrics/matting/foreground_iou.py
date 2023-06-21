@@ -1,0 +1,35 @@
+import numpy as np
+from .matting_eval_base import MattingEvaluatorBase
+
+
+class ForegroundIOUEvaluator(MattingEvaluatorBase):
+    """
+    Foreground intersection-over-union evaluator
+    """
+
+    def __init__(self, metric='fgIOU'):
+        super(ForegroundIOUEvaluator, self).__init__(metric=metric)
+
+    def update(self, predictions, targets):
+        """ Adding predictions and ground truth of images for image matting task
+        Args:
+            predictions: list of image matting predictions, [matting1, matting2, ...]. Shape: (N, ), type: PIL image object
+            targets: list of image matting ground truth, [gt1, gt2, ...]. Shape: (N, ), type: PIL image object
+        """
+
+        assert len(predictions) == len(targets)
+
+        num_class = 2
+        self._num_samples += len(predictions)
+        for pred_mask, gt_mask in zip(predictions, targets):
+            pred_binmask, gt_binmask = self._preprocess(pred_mask, gt_mask)
+            if np.all(gt_binmask == 0):
+                res = 1 if np.all(pred_binmask == 0) else 0
+                self.metric_sum += res
+                continue
+
+            label = num_class * gt_binmask.astype('int') + pred_binmask
+            count = np.bincount(label.flatten(), minlength=num_class**2)
+            confusion_matrix = count.reshape(num_class, num_class)
+            iou = np.diag(confusion_matrix) / (confusion_matrix.sum(axis=1) + confusion_matrix.sum(axis=0) - np.diag(confusion_matrix) + 1e-10)
+            self._metric_sum += iou[1]
