@@ -6,22 +6,22 @@ This repo contains evaluation metrics for vision tasks such as classification, o
 
 ### Image Classification:
 
-| Metric                                   |                                                                
-| ---------------------------------------- | 
-| MulticlassAccuracy                       |                                         
-| MulticlassPrecision                      |                                          
-| MulticlassRecall                         |                                                                
-| MulticlassF1Score                        |                                                                
-| MulticlassCalibrationError               |                                                                
-| MulticlassAveragePrecision               |                                                                
-| MulticlassAUCROC                         |                                                                
-| MulticlassConfusionMatrix                |                                                                
+| Metric                         |  Binary | Multiclass | Multilabel |                                                           
+| ------------------------------ | --------|------------|------------|
+| Accuracy                       |         |             |           |     
+| Precision                      |         |             |           |       
+| Recall                         |         |             |           |                             
+| F1Score                        |         |             |           |                             
+| CalibrationError               |         |             | ❌        |                                                               
+| AveragePrecision               |         |             |           |                                                              
+| AUCROC                         |         |             |           |                                                             
+| ConfusionMatrix                |         |             |           |                                                            
 
-**Note**: The corresponding metrics for binary and multilabel classification are available as Binary* and Multilabel*.
+❌: Not available for that task. 
 
 
 ### Object Detection:
 
 | Metric                                   |                                                                
 | ---------------------------------------- | 
-| MeanAveragePrecision                     |                                                                
+| MeanAveragePrecision                     |                         
