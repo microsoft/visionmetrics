@@ -31,7 +31,7 @@ class TestImageMattingEvaluator(unittest.TestCase):
         evaluator = L1ErrorEvaluator()
         evaluator.update(predictions=self.image_matting_predictions, targets=self.image_matting_targets)
         report = evaluator.compute()
-        self.assertAlmostEqual(report["L1Err"], 77.07375)
+        self.assertAlmostEqual(report["L1Err"], 77.07374954223633)
 
     def test_image_matting_boundary_mean_iou_evaluator(self):
         evaluator = BoundaryMeanIOUEvaluator()

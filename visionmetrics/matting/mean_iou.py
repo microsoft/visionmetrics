@@ -1,5 +1,6 @@
 import numpy as np
-from .matting_eval_base import MattingEvaluatorBase
+import torch
+from visionmetrics.matting.matting_eval_base import MattingEvaluatorBase
 
 
 class MeanIOUEvaluator(MattingEvaluatorBase):
@@ -22,8 +23,10 @@ class MeanIOUEvaluator(MattingEvaluatorBase):
         num_class = 2
         self._num_samples += len(predictions)
         for pred_mask, gt_mask in zip(predictions, targets):
+            pred_mask = torch.tensor(np.array(pred_mask))
+            gt_mask = torch.tensor(np.array(gt_mask))
             pred_binmask, gt_binmask = self._preprocess(pred_mask, gt_mask)
-            label = num_class * gt_binmask.astype('int') + pred_binmask
+            label = num_class * gt_binmask + pred_binmask
             count = np.bincount(label.flatten(), minlength=num_class**2)
             confusion_matrix = count.reshape(num_class, num_class)
             iou = np.diag(confusion_matrix) / (confusion_matrix.sum(axis=1) + confusion_matrix.sum(axis=0) - np.diag(confusion_matrix) + 1e-10)
