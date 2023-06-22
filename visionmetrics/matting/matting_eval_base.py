@@ -9,15 +9,10 @@ class MattingEvaluatorBase(Metric):
     """
 
     def __init__(self, metric):
-        super(MattingEvaluatorBase, self).__init__()
+        super().__init__()
         self._metric = metric
-        self._num_samples = 0
-        self._metric_sum = 0
-
-    def reset(self):
-        super(MattingEvaluatorBase, self).reset()
-        self._num_samples = 0
-        self._metric_sum = 0
+        self.add_state("_num_samples", default=torch.tensor(0, dtype=torch.float32), dist_reduce_fx="sum")
+        self.add_state("_metric_sum", default=torch.tensor(0, dtype=torch.float32), dist_reduce_fx="sum")
 
     def _convert2binary(self, mask, threshold=128):
         bin_mask = mask >= threshold
@@ -30,7 +25,7 @@ class MattingEvaluatorBase(Metric):
         return pred_binmask, gt_binmask
 
     def _find_contours(self, matting, thickness=10):
-        matting = torch.tensor(matting)
+        matting = matting.clone().detach()
         opencv_major_version = int(cv2.__version__.split('.')[0])
         if opencv_major_version >= 4:
             contours, _ = cv2.findContours(matting.numpy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)

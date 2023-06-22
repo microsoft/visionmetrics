@@ -7,10 +7,10 @@ class ImageCaptionEvaluatorBase(Metric):
     """
 
     def __init__(self, metric):
-        self.targets = []
-        self.predictions = []
         super().__init__()
         self.metric = metric
+        self.add_state("predictions", default=[], dist_reduce_fx="cat")
+        self.add_state("targets", default=[], dist_reduce_fx="cat")
 
     def update(self, predictions, targets):
         """ Evaluate list of image with image caption results using pycocoimcap tools.
@@ -20,11 +20,6 @@ class ImageCaptionEvaluatorBase(Metric):
         """
         self.targets += targets
         self.predictions += predictions
-
-    def reset(self):
-        super().reset()
-        self.targets = []
-        self.predictions = []
 
     def compute(self, **kwargs):
         from .coco_evalcap_utils import ImageCaptionCOCOEval, ImageCaptionCOCO, ImageCaptionWrapper

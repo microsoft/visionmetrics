@@ -27,9 +27,9 @@ class MeanIOUEvaluator(MattingEvaluatorBase):
             gt_mask = torch.tensor(np.array(gt_mask))
             pred_binmask, gt_binmask = self._preprocess(pred_mask, gt_mask)
             label = num_class * gt_binmask + pred_binmask
-            count = np.bincount(label.flatten(), minlength=num_class**2)
+            count = torch.bincount(label.flatten(), minlength=num_class**2)
             confusion_matrix = count.reshape(num_class, num_class)
-            iou = np.diag(confusion_matrix) / (confusion_matrix.sum(axis=1) + confusion_matrix.sum(axis=0) - np.diag(confusion_matrix) + 1e-10)
+            iou = torch.diag(confusion_matrix) / (confusion_matrix.sum(axis=1) + confusion_matrix.sum(axis=0) - torch.diag(confusion_matrix) + 1e-10)
             valid = confusion_matrix.sum(axis=1) > 0
-            mean_iou_per_image = np.nanmean(iou[valid])
+            mean_iou_per_image = torch.nanmean(iou[valid])
             self._metric_sum += mean_iou_per_image
