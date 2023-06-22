@@ -8,4 +8,3 @@ class BleuScoreEvaluator(ImageCaptionEvaluatorBase):
 
     def __init__(self):
         super().__init__(metric='Bleu')
-
