@@ -8,4 +8,3 @@ class CIDErScoreEvaluator(ImageCaptionEvaluatorBase):
 
     def __init__(self):
         super().__init__(metric='CIDEr')
-
