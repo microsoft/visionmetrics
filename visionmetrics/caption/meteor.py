@@ -8,5 +8,3 @@ class METEORScoreEvaluator(ImageCaptionEvaluatorBase):
 
     def __init__(self):
         super().__init__(metric='METEOR')
-        self.predictions = []
-        self.targets = []

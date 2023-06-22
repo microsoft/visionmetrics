@@ -9,7 +9,7 @@ class BoundaryMeanIOUEvaluator(MeanIOUEvaluator):
     """
 
     def __init__(self):
-        super(BoundaryMeanIOUEvaluator, self).__init__(metric='b_mIOU')
+        super().__init__(metric='b_mIOU')
 
     def _preprocess(self, pred_mask, gt_mask):
         pred_mask = torch.tensor(np.array(pred_mask))

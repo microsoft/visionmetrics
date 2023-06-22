@@ -1,4 +1,4 @@
-from .caption_eval_base import ImageCaptionEvaluatorBase
+from visionmetrics.caption.caption_eval_base import ImageCaptionEvaluatorBase
 
 
 class CIDErScoreEvaluator(ImageCaptionEvaluatorBase):
@@ -8,5 +8,4 @@ class CIDErScoreEvaluator(ImageCaptionEvaluatorBase):
 
     def __init__(self):
         super().__init__(metric='CIDEr')
-        self.predictions = []
-        self.targets = []
+

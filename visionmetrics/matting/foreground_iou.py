@@ -8,8 +8,8 @@ class ForegroundIOUEvaluator(MattingEvaluatorBase):
     Foreground intersection-over-union evaluator
     """
 
-    def __init__(self, metric='fgIOU'):
-        super(ForegroundIOUEvaluator, self).__init__(metric=metric)
+    def __init__(self):
+        super().__init__(metric='fgIOU')
 
     def update(self, predictions, targets):
         """ Adding predictions and ground truth of images for image matting task
@@ -32,7 +32,7 @@ class ForegroundIOUEvaluator(MattingEvaluatorBase):
                 continue
 
             label = num_class * gt_binmask + pred_binmask
-            count = np.bincount(label.flatten(), minlength=num_class**2)
+            count = torch.bincount(label.flatten(), minlength=num_class**2)
             confusion_matrix = count.reshape(num_class, num_class)
-            iou = np.diag(confusion_matrix) / (confusion_matrix.sum(axis=1) + confusion_matrix.sum(axis=0) - np.diag(confusion_matrix) + 1e-10)
+            iou = torch.diag(confusion_matrix) / (confusion_matrix.sum(axis=1) + confusion_matrix.sum(axis=0) - torch.diag(confusion_matrix) + 1e-10)
             self._metric_sum += iou[1]

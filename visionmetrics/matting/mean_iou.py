@@ -9,7 +9,7 @@ class MeanIOUEvaluator(MattingEvaluatorBase):
     """
 
     def __init__(self, metric='mIOU'):
-        super(MeanIOUEvaluator, self).__init__(metric=metric)
+        super().__init__(metric=metric)
 
     def update(self, predictions, targets):
         """ Adding predictions and ground truth of images for image matting task

@@ -9,7 +9,7 @@ class L1ErrorEvaluator(MattingEvaluatorBase):
     """
 
     def __init__(self):
-        super(L1ErrorEvaluator, self).__init__(metric='L1Err')
+        super().__init__(metric='L1Err')
 
     def update(self, predictions, targets):
         """ Adding predictions and ground truth of images for image matting task
