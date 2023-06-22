@@ -3,7 +3,7 @@ import torch
 from visionmetrics.matting.matting_eval_base import MattingEvaluatorBase
 
 
-class L1ErrorEvaluator(MattingEvaluatorBase):
+class L1Error(MattingEvaluatorBase):
     """
     L1 error evaluator
     """

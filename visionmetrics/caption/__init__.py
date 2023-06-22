@@ -1,8 +1,8 @@
-from .bleu import BleuScoreEvaluator
-from .cider import CIDErScoreEvaluator
-from .meteor import METEORScoreEvaluator
-from .rougel import ROUGELScoreEvaluator
-from .spice import SPICEScoreEvaluator
+from .bleu import BleuScore
+from .cider import CIDErScore
+from .meteor import METEORScore
+from .rougel import ROUGELScore
+from .spice import SPICEScore
 
 
-__all__ = ['BleuScoreEvaluator', 'CIDErScoreEvaluator', 'METEORScoreEvaluator', 'ROUGELScoreEvaluator', 'SPICEScoreEvaluator']
+__all__ = ['BleuScore', 'CIDErScore', 'METEORScore', 'ROUGELScore', 'SPICEScore']
