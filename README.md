@@ -6,6 +6,7 @@ This repo contains evaluation metrics for vision tasks such as classification, o
 
 ### Image Classification:
 
+
 | Metric                         |  Binary | Multiclass | Multilabel |                                                           
 | ------------------------------ | --------|------------|------------|
 | Accuracy                       |         |             |           |     
@@ -25,3 +26,4 @@ This repo contains evaluation metrics for vision tasks such as classification, o
 | Metric                                   |                                                                
 | ---------------------------------------- | 
 | MeanAveragePrecision                     |                         
+
