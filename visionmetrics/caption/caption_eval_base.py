@@ -9,7 +9,7 @@ class ImageCaptionEvaluatorBase(Metric):
     def __init__(self, metric):
         self.targets = []
         self.predictions = []
-        super(ImageCaptionEvaluatorBase, self).__init__()
+        super().__init__()
         self.metric = metric
 
     def update(self, predictions, targets):
@@ -22,7 +22,7 @@ class ImageCaptionEvaluatorBase(Metric):
         self.predictions += predictions
 
     def reset(self):
-        super(ImageCaptionEvaluatorBase, self).reset()
+        super().reset()
         self.targets = []
         self.predictions = []
 

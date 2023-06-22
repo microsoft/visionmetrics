@@ -1,4 +1,4 @@
-from .caption_eval_base import ImageCaptionEvaluatorBase
+from visionmetrics.caption.caption_eval_base import ImageCaptionEvaluatorBase
 
 
 class SPICEScoreEvaluator(ImageCaptionEvaluatorBase):
@@ -8,5 +8,3 @@ class SPICEScoreEvaluator(ImageCaptionEvaluatorBase):
 
     def __init__(self):
         super().__init__(metric='SPICE')
-        self.predictions = []
-        self.targets = []

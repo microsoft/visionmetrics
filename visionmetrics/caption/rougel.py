@@ -1,4 +1,4 @@
-from .caption_eval_base import ImageCaptionEvaluatorBase
+from visionmetrics.caption.caption_eval_base import ImageCaptionEvaluatorBase
 
 
 class ROUGELScoreEvaluator(ImageCaptionEvaluatorBase):
@@ -8,5 +8,3 @@ class ROUGELScoreEvaluator(ImageCaptionEvaluatorBase):
 
     def __init__(self):
         super().__init__(metric='ROUGE_L')
-        self.predictions = []
-        self.targets = []
