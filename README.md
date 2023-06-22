@@ -7,13 +7,13 @@ This repo contains evaluation metrics for vision tasks such as classification, o
 ### Image Classification:
 
 
-| Metric                         |  Binary | Multiclass | Multilabel |                                                           
+| Metric                         |  Binary | Multiclass |Multilabel |                                                           
 | ------------------------------ | --------|------------|------------|
 | Accuracy                       |         |             |           |     
 | Precision                      |         |             |           |       
 | Recall                         |         |             |           |                             
 | F1Score                        |         |             |           |                             
-| CalibrationError               |         |             | ❌        |                                                               
+| CalibrationError               |         |             |❌        |                                                               
 | AveragePrecision               |         |             |           |                                                              
 | AUCROC                         |         |             |           |                                                             
 | ConfusionMatrix                |         |             |           |                                                            
@@ -25,5 +25,22 @@ This repo contains evaluation metrics for vision tasks such as classification, o
 
 | Metric                                   |                                                                
 | ---------------------------------------- | 
-| MeanAveragePrecision                     |                         
+| MeanAveragePrecision                     |          
+
+
+### Image Regression:
+
+| Metric                                   |                                                                
+| ---------------------------------------- | 
+| MeanAbsoluteError                        |     
+| MeanSquaredError                         |
+
+
+### Image Retrieval:
+
+| Metric                                   |                                                                
+| ---------------------------------------- | 
+| RetrievalRecall                          |     
+| RetrievalPrecisio                        |
+| RetrievalMAP                             |
 
