@@ -1,9 +1,9 @@
 import numpy as np
 import torch
-from visionmetrics.matting.mean_iou import MeanIOUEvaluator
+from visionmetrics.matting.mean_iou import MeanIOU
 
 
-class BoundaryMeanIOUEvaluator(MeanIOUEvaluator):
+class BoundaryMeanIOU(MeanIOU):
     """
     Boundary mean intersection-over-union evaluator
     """

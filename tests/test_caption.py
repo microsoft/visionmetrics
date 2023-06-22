@@ -2,7 +2,7 @@ import json
 import pathlib
 import unittest
 
-from visionmetrics.caption import BleuScoreEvaluator, CIDErScoreEvaluator, METEORScoreEvaluator, ROUGELScoreEvaluator, SPICEScoreEvaluator
+from visionmetrics.caption import BleuScore, CIDErScore, METEORScore, ROUGELScore, SPICEScore
 
 
 class TestImageCaptionEvaluator(unittest.TestCase):
@@ -24,7 +24,7 @@ class TestImageCaptionEvaluator(unittest.TestCase):
         imcap_targets.append(gts_by_id[key])
 
     def test_image_caption_blue_score_evaluator(self):
-        evaluator = BleuScoreEvaluator()
+        evaluator = BleuScore()
         evaluator.update(predictions=self.imcap_predictions, targets=self.imcap_targets)
         report = evaluator.compute()
         self.assertAlmostEqual(report["Bleu_1"], 0.783228681385441)
@@ -33,25 +33,25 @@ class TestImageCaptionEvaluator(unittest.TestCase):
         self.assertAlmostEqual(report["Bleu_4"], 0.3573567238999926)
 
     def test_image_caption_meteor_score_evaluator(self):
-        evaluator = METEORScoreEvaluator()
+        evaluator = METEORScore()
         evaluator.update(predictions=self.imcap_predictions, targets=self.imcap_targets)
         report = evaluator.compute()
         self.assertAlmostEqual(report["METEOR"], 0.2878681068021112)
 
     def test_image_caption_rouge_l_score_evaluator(self):
-        evaluator = ROUGELScoreEvaluator()
+        evaluator = ROUGELScore()
         evaluator.update(predictions=self.imcap_predictions, targets=self.imcap_targets)
         report = evaluator.compute()
         self.assertAlmostEqual(report["ROUGE_L"], 0.5774238052522583)
 
     def test_image_caption_cider_score_evaluator(self):
-        evaluator = CIDErScoreEvaluator()
+        evaluator = CIDErScore()
         evaluator.update(predictions=self.imcap_predictions, targets=self.imcap_targets)
         report = evaluator.compute()
         self.assertAlmostEqual(report["CIDEr"], 1.2346054374217474)
 
     def test_image_caption_spice_score_evaluator(self):
-        evaluator = SPICEScoreEvaluator()
+        evaluator = SPICEScore()
         evaluator.update(predictions=self.imcap_predictions, targets=self.imcap_targets)
         report = evaluator.compute()
         self.assertAlmostEqual(report["SPICE"], 0.2226814382948703)

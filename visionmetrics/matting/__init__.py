@@ -1,7 +1,7 @@
-from .foreground_iou import ForegroundIOUEvaluator
-from .boundary_foreground_iou import BoundaryForegroundIOUEvaluator
-from .mean_iou import MeanIOUEvaluator
-from .l1_error import L1ErrorEvaluator
-from .boundary_mean_iou import BoundaryMeanIOUEvaluator
+from .foreground_iou import ForegroundIOU
+from .boundary_foreground_iou import BoundaryForegroundIOU
+from .mean_iou import MeanIOU
+from .l1_error import L1Error
+from .boundary_mean_iou import BoundaryMeanIOU
 
-__all__ = ["ForegroundIOUEvaluator", "BoundaryForegroundIOUEvaluator", "MeanIOUEvaluator", "L1ErrorEvaluator", "BoundaryMeanIOUEvaluator"]
+__all__ = ["ForegroundIOU", "BoundaryForegroundIOU", "MeanIOU", "L1Error", "BoundaryMeanIOU"]

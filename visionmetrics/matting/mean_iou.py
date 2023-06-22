@@ -3,7 +3,7 @@ import torch
 from visionmetrics.matting.matting_eval_base import MattingEvaluatorBase
 
 
-class MeanIOUEvaluator(MattingEvaluatorBase):
+class MeanIOU(MattingEvaluatorBase):
     """
     Mean intersection-over-union evaluator
     """

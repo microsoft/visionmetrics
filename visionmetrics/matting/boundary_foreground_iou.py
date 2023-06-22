@@ -3,7 +3,7 @@ import torch
 from visionmetrics.matting.matting_eval_base import MattingEvaluatorBase
 
 
-class BoundaryForegroundIOUEvaluator(MattingEvaluatorBase):
+class BoundaryForegroundIOU(MattingEvaluatorBase):
     """
     Boundary foreground intersection-over-union evaluator
     """
