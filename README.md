@@ -51,12 +51,13 @@ This repo contains evaluation metrics for vision tasks such as classification, o
 import torch
 from visionmetrics.classification import MulticlassAccuracy
 
+preds = torch.rand(10, 10)
+target = torch.randint(0, 10, (10,))
+
 # Initialize metric
 metric = MulticlassAccuracy(num_classes=10, top_k=1, average='macro')
 
 # Add batch of predictions and targets
-preds = torch.rand(10, 10)
-target = torch.randint(0, 10, (10,))
 metric.update(preds, target)
 
 # Compute metric
