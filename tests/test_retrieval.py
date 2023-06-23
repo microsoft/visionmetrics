@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from visionmetrics.retrieval import (RetrievalMAP, RetrievalPrecision,
+from visionmetrics.retrieval import (RetrievalMAP, RetrievalPrecision, RetrievalPrecisionRecallCurveNPoints,
                                      RetrievalRecall)
 
 
@@ -104,6 +104,31 @@ class TestRetrievalPrecision(unittest.TestCase):
             metric.update(preds.float(), target)
             result = metric.compute()
             self.assertAlmostEqual(result.item(), exps, places=4)
+
+    def test_precision_recall_curve_n_points(self):
+
+        predictions = [torch.tensor([[0.8, 0.5, 0.2],
+                                     [0.8, 0.2, 0.7]]),
+                       torch.tensor([[0.9, 0.0, 0.1]]),
+                       torch.tensor([[1.0, 0.3, 0.0]]),
+                       torch.tensor([[0.8, 0.0, 0.0]])]
+
+        targets = [torch.tensor([[1, 0, 1],
+                                 [0, 0, 1]]),
+                   torch.tensor([[1, 0, 1]]),
+                   torch.tensor([[0, 1, 0]]),
+                   torch.tensor([[0, 1, 1]])]
+
+        expectations = [torch.tensor([0.58333333, 0.58333333, 0.58333333, 0.58333333, 0.58333333, 0.75, 0.75, 0.75, 0.75, 0.75, 1]),
+                        torch.tensor([0.72222222, 0.72222222, 0.72222222, 0.72222222, 0.72222222, 0.83333333, 0.83333333, 0.83333333, 0.83333333, 0.83333333, 1]),
+                        torch.tensor([0.66666667, 0.66666667, 0.66666667, 0.66666667, 0.66666667, 0.75, 0.75, 0.75, 0.75, 0.75, 1]),
+                        torch.tensor([0.66666667, 0.66666667, 0.66666667, 0.66666667, 0.66666667, 0.73333333, 0.73333333, 0.73333333, 0.73333333, 0.73333333, 1])]
+
+        metric = RetrievalPrecisionRecallCurveNPoints(n_points=11)
+        for preds, tgt, exp in zip(predictions, targets, expectations):
+            metric.update(preds, tgt)
+            precision, _ = metric.compute()
+            self.assertTrue(torch.allclose(precision, exp, atol=1e-4))
 
 
 if __name__ == '__main__':

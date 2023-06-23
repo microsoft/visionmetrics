@@ -3,5 +3,5 @@
 
 # Import custom metrics from visionmetrics
 from visionmetrics.retrieval.precision_recall import (
-    RetrievalMAP, RetrievalPrecision, RetrievalPrecisionRecallCurve,
+    RetrievalMAP, RetrievalPrecision, RetrievalPrecisionRecallCurveNPoints,
     RetrievalRecall)
