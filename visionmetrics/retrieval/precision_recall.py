@@ -1,6 +1,8 @@
 from typing import Any
+
 import torch
 import torchmetrics
+from torchmetrics.functional.classification import binary_precision_recall_curve
 
 
 class RetrievalExtend:
@@ -58,14 +60,8 @@ class RetrievalPrecisionRecallCurveNPoints(torchmetrics.Metric):
         # that uses sklearn-based precision_recall_curve which uses thresholds in this way
         thresholds = torch.unique(prediction)
 
-        from torchmetrics.functional.classification import binary_precision_recall_curve
         precision, recall, _ = binary_precision_recall_curve(prediction, target, thresholds)
         precision_interp = torch.zeros_like(recall_thresholds)
-        recall_idx = 0
-        precision_tmp = 0
-        for i, threshold in enumerate(recall_thresholds):
-            while recall_idx < len(recall) and threshold <= recall[recall_idx]:
-                precision_tmp = max(precision_tmp, precision[recall_idx])
-                recall_idx += 1
-            precision_interp[i] = precision_tmp
+        mask = recall_thresholds.unsqueeze(-1) <= recall
+        precision_interp = (precision * mask).max(dim=-1).values
         return precision_interp
