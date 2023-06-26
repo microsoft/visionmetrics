@@ -52,7 +52,6 @@ This repo contains evaluation metrics for vision tasks such as classification, o
 | METEORScore                              |
 | ROUGELScore                              |
 | CIDErScore                               |
-| SPICEScore                               |
 
 ### Image Matting
 | Metric                                   |                                                                
