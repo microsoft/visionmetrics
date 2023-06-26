@@ -8,7 +8,6 @@ from pycocoevalcap.bleu.bleu import Bleu
 from pycocoevalcap.meteor.meteor import Meteor
 from pycocoevalcap.rouge.rouge import Rouge
 from pycocoevalcap.cider.cider import Cider
-from pycocoevalcap.spice.spice import Spice
 
 
 class ImageCaptionCOCO(COCO):
@@ -45,10 +44,8 @@ class ImageCaptionCOCOEval(COCOEvalCap):
             self.scores = [(Rouge(), "ROUGE_L")]
         elif metric == "CIDEr":
             self.scores = [(Cider(), "CIDEr")]
-        elif metric == "SPICE":
-            self.scores = [(Spice(), "SPICE")]
         else:
-            raise ValueError(f'Not supported image caption metric: {metric}. Supported metric list: [Bleu, METEOR, ROUGE_L, CIDEr, SPICE]')
+            raise ValueError(f'Not supported image caption metric: {metric}. Supported metric list: [Bleu, METEOR, ROUGE_L, CIDEr]')
 
     def reset(self):
         self.scores = []

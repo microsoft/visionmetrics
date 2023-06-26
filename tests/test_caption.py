@@ -2,7 +2,7 @@ import json
 import pathlib
 import unittest
 
-from visionmetrics.caption import BleuScore, CIDErScore, METEORScore, ROUGELScore, SPICEScore
+from visionmetrics.caption import BleuScore, CIDErScore, METEORScore, ROUGELScore
 
 
 class TestImageCaptionEvaluator(unittest.TestCase):
@@ -49,9 +49,3 @@ class TestImageCaptionEvaluator(unittest.TestCase):
         evaluator.update(predictions=self.imcap_predictions, targets=self.imcap_targets)
         report = evaluator.compute()
         self.assertAlmostEqual(report["CIDEr"], 1.2346054374217474)
-
-    def test_image_caption_spice_score_evaluator(self):
-        evaluator = SPICEScore()
-        evaluator.update(predictions=self.imcap_predictions, targets=self.imcap_targets)
-        report = evaluator.compute()
-        self.assertAlmostEqual(report["SPICE"], 0.2226814382948703)
