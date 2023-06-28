@@ -41,9 +41,26 @@ This repo contains evaluation metrics for vision tasks such as classification, o
 | Metric                                   |                                                                
 | ---------------------------------------- | 
 | RetrievalRecall                          |     
-| RetrievalPrecisio                        |
+| RetrievalPrecision                       |
 | RetrievalMAP                             |
 
+
+### Image Caption
+| Metric                                   |                                                       
+| ---------------------------------------- | 
+| BleuScore                                |     
+| METEORScore                              |
+| ROUGELScore                              |
+| CIDErScore                               |
+
+### Image Matting
+| Metric                                   |                                                                
+| ---------------------------------------- | 
+| MeanIOU                                  |     
+| ForegroundIOU                            |
+| BoundaryMeanIOU                          |
+| BoundaryForegroundIOU                    |
+| L1Error                                  |
 
 ## Example Usage
 
@@ -67,3 +84,8 @@ result = metric.compute()
 ## Implementing Custom Metrics
 Please refer to [torchmetrics](https://github.com/Lightning-AI/torchmetrics#implementing-your-own-module-metric) for more details on how to implement custom metrics.
 
+
+
+## Additional Requirements
+
+The image caption metric calculation requires Jave Runtime Environment (JRE) (Java 1.8.0) and some extra dependencies which can be installed with `pip install visionmetrics[caption]`. This is not required for other evaluators. If you do not need image caption metrics, JRE is not required.
