@@ -1,5 +1,8 @@
+from typing import Any
+
 import torch
 import torchmetrics
+from torchmetrics.functional.classification import binary_precision_recall_curve
 
 
 class RetrievalExtend:
@@ -30,5 +33,35 @@ class RetrievalMAP(RetrievalExtend, torchmetrics.retrieval.RetrievalMAP):
     pass
 
 
-class RetrievalPrecisionRecallCurve(RetrievalExtend, torchmetrics.retrieval.RetrievalPrecisionRecallCurve):
-    pass
+class RetrievalPrecisionRecallCurveNPoints(torchmetrics.Metric):
+    def __init__(self, n_points, **kwargs: Any) -> None:
+        self.n_points = n_points
+        super().__init__(**kwargs)
+
+        self.add_state("recall_thresholds", default=torch.linspace(1, 0, self.n_points), dist_reduce_fx=None)
+        self.add_state("precision_averaged", default=torch.zeros(self.n_points), dist_reduce_fx="sum")
+        self.add_state("total_samples", default=torch.zeros(1), dist_reduce_fx="sum")
+
+    def update(self, predictions, targets):
+        n_samples = predictions.shape[0]
+        self.total_samples += n_samples
+        for i in range(n_samples):
+            precision_interp = self._compute_precision_recall_interp(predictions[i], targets[i], self.recall_thresholds)
+            self.precision_averaged += precision_interp
+
+    def compute(self):
+        return self.precision_averaged / self.total_samples, self.recall_thresholds
+
+    def _compute_precision_recall_interp(self, prediction, target, recall_thresholds):
+        assert len(prediction) == len(target)
+        assert len(target.shape) == 1
+
+        # NOTE: thresholds are calculated in this way to achieve parity with vision-evaluation
+        # that uses sklearn-based precision_recall_curve which uses thresholds in this way
+        thresholds = torch.unique(prediction)
+
+        precision, recall, _ = binary_precision_recall_curve(prediction, target, thresholds)
+        precision_interp = torch.zeros_like(recall_thresholds)
+        mask = recall_thresholds.unsqueeze(-1) <= recall
+        precision_interp = (precision * mask).max(dim=-1).values
+        return precision_interp
