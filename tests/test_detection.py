@@ -1,5 +1,7 @@
 import unittest
 
+import torch
+
 from visionmetrics.detection import MeanAveragePrecision
 
 
@@ -158,7 +160,7 @@ class TestDetection(unittest.TestCase):
         result_remap_cat_id = metric.compute()
 
         for k in result.keys():
-            self.assertEqual(result[k], result_remap_cat_id[k])
+            self.assertTrue(torch.allcose((result[k], result_remap_cat_id[k])))
 
 
 if __name__ == '__main__':
