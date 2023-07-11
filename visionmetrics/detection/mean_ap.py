@@ -1,27 +1,39 @@
 import torch
 from torchmetrics import detection
+from typing import List, Dict, Tuple
 
 
 class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
-    def update(self, predictions, targets):
+    """
+    Mean Average Precision (mAP) metric for object detection task.
+
+    This implementation extends the `torchmetrics` implementation of mAP to accept predictions and targets in a different format.
+    The `update` method expects predictions and targets to be a list of lists of lists, where each inner list corresponds to a single image.
+    The innermost list contains the predicted or ground truth boxes for that image, where each box is represented as a list of 6 (or 5 for target with no score) elements:
+    [label, score, L, T, R, B], where L, T, R, B are the coordinates of the box in the format 'xyxy' (xmin, ymin, xmax, ymax).
+
+    Example:
+    ```
+    predictions = [[[0, 0.9, 10, 20, 50, 100], [1, 0.8, 30, 40, 80, 120]], [[1, 0.7, 20, 30, 60, 90]]]
+    targets = [[[0, 10, 20, 50, 100], [1, 30, 40, 80, 120]], [[1, 20, 30, 60, 90]]]
+
+    metric = MeanAveragePrecision(num_classes=2)
+    metric.update(predictions, targets)
+    ap = metric.compute()
+    ```
+    """
+
+    def update(self, predictions: List[List[List[float]]], targets: List[List[List[float]]]) -> None:
         predictions, targets = self._preprocess(predictions, targets)
         super().update(predictions, targets)
 
-    def _preprocess(self, predictions, targets):
-        """torchmetrics implementation of MeanAveragePrecision expects predictions and targets to be a list of dictionaries. Each dictionary corresponds to a single image.
-            Default box format is 'xyxy' (xmin, ymin, xmax, ymax).
-
-            Args:
-                predictions: list of predictions [[[label, score, L, T, R, B], ...], [...], ...]
-                targets: list of targets [[[label, L, T, R, B], ...], ...]
-        """
-
+    def _preprocess(self, predictions: List[List[List[float]]], targets: List[List[List[float]]]) -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]:
         predictions = [self._convert_to_dict(p) for p in predictions]
         targets = [self._convert_to_dict(t, scores=False) for t in targets]
         return predictions, targets
 
     @staticmethod
-    def _convert_to_dict(boxes, scores=True):
+    def _convert_to_dict(boxes: List[List[float]], scores: bool = True) -> Dict[str, torch.Tensor]:
         """
         Args:
             boxes (list): list of boxes. Each box is a list of 6 (or 5 when no score) elements: [label, score, L, T, R, B]
