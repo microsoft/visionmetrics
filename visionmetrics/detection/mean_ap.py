@@ -24,9 +24,9 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
     """
 
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         if self.box_format != 'xyxy':
             raise ValueError(f'Expected box format to be "xyxy", got {self.box_format}')
-        super().__init__(**kwargs)
 
     def update(self, predictions: List[List[List[float]]], targets: List[List[List[float]]]) -> None:
         predictions, targets = self._preprocess(predictions, targets)
