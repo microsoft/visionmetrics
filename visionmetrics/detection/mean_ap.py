@@ -25,6 +25,7 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
         """
         Args:
             boxes (list): list of boxes. Each box is a list of 6 (or 5 when no score) elements: [label, score, L, T, R, B]
+            score (bool): whether to include scores in the output dictionary
         """
         if not boxes:
             boxes = torch.empty(0, 6) if scores else torch.empty(0, 5)
