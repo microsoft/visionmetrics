@@ -17,7 +17,7 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
     predictions = [[[0, 0.9, 10, 20, 50, 100], [1, 0.8, 30, 40, 80, 120]], [[1, 0.7, 20, 30, 60, 90]]]
     targets = [[[0, 10, 20, 50, 100], [1, 30, 40, 80, 120]], [[1, 20, 30, 60, 90]]]
 
-    metric = MeanAveragePrecision(num_classes=2)
+    metric = MeanAveragePrecision()
     metric.update(predictions, targets)
     ap = metric.compute()
     ```
