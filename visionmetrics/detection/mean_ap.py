@@ -22,7 +22,7 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
     ap = metric.compute()
     ```
 
-    Returns: map, map_50, map_75, map_per_class
+    Computes: map, map_50, map_75, map_per_class
     """
 
     def __init__(self, box_format='xyxy', **kwargs):
