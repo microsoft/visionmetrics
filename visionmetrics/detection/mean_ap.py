@@ -1,4 +1,3 @@
-import re
 import torch
 from torchmetrics import detection
 from typing import List, Dict, Tuple
