@@ -1,3 +1,4 @@
+import re
 import torch
 from torchmetrics import detection
 from typing import List, Dict, Tuple
@@ -10,7 +11,7 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
     This implementation extends the `torchmetrics` implementation of mAP to accept predictions and targets in a different format.
     The `update` method expects predictions and targets to be a list of lists of lists, where each inner list corresponds to a single image.
     The innermost list contains the predicted or ground truth boxes for that image, where each box is represented as a list of 6 (or 5 for target with no score) elements:
-    [label, score, L, T, R, B], where L, T, R, B are the coordinates of the box in the format 'xyxy' (xmin, ymin, xmax, ymax).
+    [label, score, L, T, R, B], where L, T, R, B are the coordinates of the box in the format 'xyxy' (xmin, ymin, xmax, ymax). Accepts both relative and absolute coordinates.
 
     Example:
     ```
@@ -21,6 +22,8 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
     metric.update(predictions, targets)
     ap = metric.compute()
     ```
+
+    Returns: map, map_50, map_75, map_per_class
     """
 
     def __init__(self, box_format='xyxy', **kwargs):
@@ -32,6 +35,10 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
     def update(self, predictions: List[List[List[float]]], targets: List[List[List[float]]]) -> None:
         predictions, targets = self._preprocess(predictions, targets)
         super().update(predictions, targets)
+
+    def compute(self):
+        result = super().compute()
+        return {k: v for k, v in result.items() if k in ['map', 'map_50', 'map_75', 'map_per_class']}
 
     def _preprocess(self, predictions: List[List[List[float]]], targets: List[List[List[float]]]) -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]:
         predictions = [self._convert_to_dict(p) for p in predictions]
