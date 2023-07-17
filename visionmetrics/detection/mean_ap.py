@@ -14,7 +14,7 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
     [label, score, L, T, R, B], where L, T, R, B are the coordinates of the box in the format 'xyxy' (xmin, ymin, xmax, ymax).
 
     2. Accept both relative and absolute coordinates.
-    NOTE: torchmetrics.*.MeanAveragePrecision only accepts absolute coordinates so it is possible after some version update MeanAveragePrecision might break suddenly.
+    NOTE: torchmetrics.*.MeanAveragePrecision only expects absolute coordinates so it is possible after some version update MeanAveragePrecision might break suddenly.
 
     3. Only compute the following metrics: map, map_50, map_75, map_per_class (which are independent of the coordinate format).
 
