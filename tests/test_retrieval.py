@@ -2,7 +2,8 @@ import unittest
 
 import torch
 
-from visionmetrics.retrieval import (RetrievalMAP, RetrievalPrecision, RetrievalPrecisionRecallCurveNPoints,
+from visionmetrics.retrieval import (RetrievalMAP, RetrievalPrecision,
+                                     RetrievalPrecisionRecallCurveNPoints,
                                      RetrievalRecall)
 
 
@@ -44,7 +45,7 @@ class TestRetrievalPrecision(unittest.TestCase):
 
         for preds, target, exps, k in zip(self.PREDICTIONS, self.TARGETS, expectations, ks):
             for i in range(1, k):
-                metric = RetrievalRecall(k=i, adaptive_k=True)
+                metric = RetrievalRecall(top_k=i)
                 metric.update(preds.float(), target)
                 result = metric.compute()
                 self.assertAlmostEqual(result.item(), exps[i - 1], places=4)
@@ -62,7 +63,7 @@ class TestRetrievalPrecision(unittest.TestCase):
 
         for preds, target, exps, k in zip(self.PREDICTIONS, self.TARGETS, expectations, ks):
             for i in range(1, k):
-                metric = RetrievalPrecision(k=i, adaptive_k=True)
+                metric = RetrievalPrecision(top_k=i, adaptive_k=True)
                 metric.update(preds.float(), target)
                 result = metric.compute()
                 self.assertAlmostEqual(result.item(), exps[i - 1], places=4)
@@ -94,15 +95,16 @@ class TestRetrievalPrecision(unittest.TestCase):
                        torch.tensor([[2, 3, 5, 4]]),
                        torch.tensor([[2, 3, 5]]),
                        torch.tensor([[2, 3, 5, 4, 2, 3, 5, 4, 2, 3, 5, 4, 2, 3, 5, 7, 3, 4]])]
-        rank = [4, 4, 4, 4, 4, 4, 3, 3, 5, 2, 4, 4, 8]
-        expectations = [0.77777, 0.80555, 0.75, 0.91666, 1.0, 1.0, 0.91666, 0.91666, 0.91666, 0.0, 0.83333, 0.8220]
+        rank = [5, 4, 4, 4, 4, 3, 3, 5, 2, 4, 4, 8]
+        expectations = [0.77777, 0.80555, 0.75, 0.91666, 1.0, 1.0, 1.0, 0.91666, 1.0, 0.0, 0.83333, 0.9306]
 
         for preds, target, exps, k in zip(predictions, targets, expectations, rank):
             if preds.numel() == 0:
                 continue
-            metric = RetrievalMAP(k=k, adaptive_k=True)
+            metric = RetrievalMAP(top_k=k)
             metric.update(preds.float(), target)
             result = metric.compute()
+            print(result)
             self.assertAlmostEqual(result.item(), exps, places=4)
 
     def test_precision_recall_curve_n_points(self):
