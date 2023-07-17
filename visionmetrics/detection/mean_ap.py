@@ -7,10 +7,16 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
     """
     Mean Average Precision (mAP) metric for object detection task.
 
-    This implementation extends the `torchmetrics` implementation of mAP to accept predictions and targets in a different format.
-    The `update` method expects predictions and targets to be a list of lists of lists, where each inner list corresponds to a single image.
+    This implementation extends the `torchmetrics` implementation of mAP to:
+
+    1. Accept predictions and targets in a different format. The `update` method expects predictions and targets to be a list of lists of lists, where each inner list corresponds to a single image.
     The innermost list contains the predicted or ground truth boxes for that image, where each box is represented as a list of 6 (or 5 for target with no score) elements:
-    [label, score, L, T, R, B], where L, T, R, B are the coordinates of the box in the format 'xyxy' (xmin, ymin, xmax, ymax). Accepts both relative and absolute coordinates.
+    [label, score, L, T, R, B], where L, T, R, B are the coordinates of the box in the format 'xyxy' (xmin, ymin, xmax, ymax).
+
+    2. Accept both relative and absolute coordinates.
+    NOTE: torchmetrics.*.MeanAveragePrecision only accepts absolute coordinates so it is possible after some version update MeanAveragePrecision might break suddenly.
+
+    3. Only compute the following metrics: map, map_50, map_75, map_per_class (which are independent of the coordinate format).
 
     Example:
     ```
@@ -21,8 +27,6 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
     metric.update(predictions, targets)
     ap = metric.compute()
     ```
-
-    Computes: map, map_50, map_75, map_per_class
     """
 
     def __init__(self, box_format='xyxy', **kwargs):
