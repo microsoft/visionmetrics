@@ -221,7 +221,7 @@ class TestROCAUC(unittest.TestCase):
     @staticmethod
     def _get_metric(predictions, targets, task='multiclass', num_classes=None, average='macro'):
         if task == 'binary':
-            metric = BinaryAUROC(num_classes=num_classes, average=average)
+            metric = BinaryAUROC()
         elif task == 'multiclass':
             metric = MulticlassAUROC(num_classes=num_classes, average=average)
         else:
