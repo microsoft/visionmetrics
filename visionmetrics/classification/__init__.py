@@ -4,10 +4,12 @@ from torchmetrics.classification import (BinaryAUROC, MulticlassAccuracy,
                                          MulticlassAveragePrecision,
                                          MulticlassCalibrationError,
                                          MulticlassConfusionMatrix,
+                                         MulticlassExactMatch,
                                          MulticlassPrecision, MulticlassRecall,
                                          MultilabelAccuracy, MultilabelAUROC,
                                          MultilabelAveragePrecision,
-                                         MultilabelConfusionMatrix)
+                                         MultilabelConfusionMatrix,
+                                         MultilabelExactMatch)
 
 # Import custom metrics from visionmetrics
 from visionmetrics.classification.precision_recall import (MultilabelF1Score,

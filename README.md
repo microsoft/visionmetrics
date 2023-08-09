@@ -13,6 +13,7 @@ This repo contains evaluation metrics for vision tasks such as classification, o
   - `F1Score`: computes f1-score.
   - `CalibrationLoss`<sup>**</sup>: computes the [ECE loss](https://arxiv.org/pdf/1706.04599.pdf), i.e., the expected calibration error, given the model confidence and true labels for a set of data points.
   - `ConfusionMatrix`: computes the confusion matrix of a classification. By definition a confusion matrix C is such that Cij is equal to the number of observations known to be in group i and predicted to be in group j (https://en.wikipedia.org/wiki/Confusion_matrix).
+  - `ExactMatch`: computes the exact match score, i.e., the percentage of samples where the predicted label is exactly the same as the ground truth label.
 
 The above metrics are available for Binary, Multiclass, and Multilabel classification tasks. For example, `BinaryAccuracy` is the binary version of `Accuracy` and `MultilabelAccuracy` is the multilabel version of `Accuracy`. Please refer to the example usage below for more details.
 
