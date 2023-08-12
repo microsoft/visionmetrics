@@ -48,7 +48,7 @@ class TestMulticlassClassification(unittest.TestCase):
 
     def test_top_k_accuracy_evaluator(self):
         gts = [[0.4, 1.0, 1.0], [0.4666666, 0.7333333, 1.0]]
-        for k_idx, top_k in enumerate([1, 2]):
+        for k_idx, top_k in enumerate([1, 2, 5]):
             for i, (targets, predictions, num_classes) in enumerate(zip(self.TARGETS, self.PREDICTIONS, self.NUM_CLASSES)):
                 metric_topk_acc = MulticlassAccuracy(num_classes=num_classes, top_k=top_k, average='micro')
                 metric_topk_acc.update(predictions, targets)
