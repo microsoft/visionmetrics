@@ -34,13 +34,17 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
         if box_format != 'xyxy':
             raise ValueError(f'Expected box format to be "xyxy", got {box_format}')
         super().__init__(box_format=box_format, **kwargs)
+        self._label_ids = set()
 
     def update(self, predictions: List[List[List[float]]], targets: List[List[List[float]]]) -> None:
         predictions, targets = self._preprocess(predictions, targets)
+        self._update_label_ids(predictions, targets)
         super().update(predictions, targets)
 
     def compute(self):
         result = super().compute()
+        if self.class_metrics:
+            result['map_per_class'] = {sorted(self._label_ids)[i]: v for i, v in enumerate(result['map_per_class'])}
         return {k: v for k, v in result.items() if k in ['map', 'map_50', 'map_75', 'map_per_class']}
 
     def _preprocess(self, predictions: List[List[List[float]]], targets: List[List[List[float]]]) -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]:
@@ -64,3 +68,8 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
             return {'boxes': boxes[:, -4:], 'labels': boxes[:, 0].to(torch.int), 'scores': boxes[:, 1].to(torch.float)}
         else:
             return {'boxes': boxes[:, -4:], 'labels': boxes[:, 0].to(torch.int)}
+
+    def _update_label_ids(self, predictions: List[Dict[str, torch.Tensor]], targets: List[Dict[str, torch.Tensor]]) -> None:
+        for p, t in zip(predictions, targets):
+            self._label_ids.update(p['labels'].tolist())
+            self._label_ids.update(t['labels'].tolist())
