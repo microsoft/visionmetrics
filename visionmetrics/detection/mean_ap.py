@@ -45,7 +45,8 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
         result = super().compute()
         if self.class_metrics:
             result['map_per_class'] = {sorted(self._label_ids)[i]: v for i, v in enumerate(result['map_per_class'])}
-        return {k: v for k, v in result.items() if k in ['map', 'map_50', 'map_75', 'map_per_class']}
+            return {k: v for k, v in result.items() if k in ['map', 'map_50', 'map_75', 'map_per_class']}
+        return {k: v for k, v in result.items() if k in ['map', 'map_50', 'map_75']}
 
     def _preprocess(self, predictions: List[List[List[float]]], targets: List[List[List[float]]]) -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]:
         predictions = [self._convert_to_dict(p) for p in predictions]
