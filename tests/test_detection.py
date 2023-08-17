@@ -197,7 +197,7 @@ class TestDetection(unittest.TestCase):
         self.assertAlmostEqual(results['map_per_class'].get(1), -1.0, places=5)
         self.assertAlmostEqual(results['map_per_class'].get(2), 1.0, places=5)
 
-    def test_class_wise_label_ids(self):
+    def test_update_label_ids(self):
         PREDICTIONS = [[[1, 1.0, 0, 0, 1, 1]]]
         TARGETS = [[[1, 0, 0, 1, 1]]]
 
