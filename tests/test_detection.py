@@ -201,7 +201,7 @@ class TestDetection(unittest.TestCase):
         PREDICTIONS = [[[1, 1.0, 0, 0, 1, 1]]]
         TARGETS = [[[1, 0, 0, 1, 1]]]
 
-        metric = MeanAveragePrecision(iou_thresholds=[0.5], class_metrics=True)
+        metric = MeanAveragePrecision(iou_thresholds=[0.5])
         metric.update(PREDICTIONS, TARGETS)
         self.assertEqual(metric._label_ids, {1})
 
