@@ -175,21 +175,40 @@ class TestDetection(unittest.TestCase):
         self.assertAlmostEqual(results['map_per_class'].get(0), 1.0, places=5)
         self.assertAlmostEqual(results['map_per_class'].get(1), 0.0, places=5)
 
-    def test_class_wise_with_missing_classes(self):
-        PREDICTIONS = [[[1, 1.0, 0, 0, 1, 1],
-                        [2, 1.0, 0, 0, 1, 1],
-                        [0, 1.0, 0, 0, 1, 1]]]
-        TARGETS = [[[2, 0, 0, 1, 1],
-                    [3, 0, 0, 1, 1],
-                    [0, 0, 0, 1, 1]]]
+    def test_class_wise_with_missing_class_in_predictions(self):
+        PREDICTIONS = [[[1, 1.0, 0, 0, 1, 1]]]
+        TARGETS = [[[1, 0, 0, 1, 1],
+                    [2, 0, 0, 1, 1]]]
 
         metric = MeanAveragePrecision(iou_thresholds=[0.5], class_metrics=True)
         metric.update(PREDICTIONS, TARGETS)
         results = metric.compute()
-        self.assertAlmostEqual(results['map_per_class'].get(0), 1.0, places=5)
+        self.assertAlmostEqual(results['map_per_class'].get(1), 1.0, places=5)
+        self.assertAlmostEqual(results['map_per_class'].get(2), 0.0, places=5)
+
+    def test_class_wise_with_missing_class_in_targets(self):
+        PREDICTIONS = [[[1, 1.0, 0, 0, 1, 1],
+                        [2, 1.0, 0, 0, 1, 1]]]
+        TARGETS = [[[2, 0, 0, 1, 1]]]
+
+        metric = MeanAveragePrecision(iou_thresholds=[0.5], class_metrics=True)
+        metric.update(PREDICTIONS, TARGETS)
+        results = metric.compute()
         self.assertAlmostEqual(results['map_per_class'].get(1), -1.0, places=5)
         self.assertAlmostEqual(results['map_per_class'].get(2), 1.0, places=5)
-        self.assertAlmostEqual(results['map_per_class'].get(3), 0.0, places=5)
+
+    def test_class_wise_label_ids(self):
+        PREDICTIONS = [[[1, 1.0, 0, 0, 1, 1]]]
+        TARGETS = [[[1, 0, 0, 1, 1]]]
+
+        metric = MeanAveragePrecision(iou_thresholds=[0.5], class_metrics=True)
+        metric.update(PREDICTIONS, TARGETS)
+        self.assertEqual(metric._label_ids, {1})
+
+        PREDICTIONS = [[[1, 1.0, 0, 0, 0.5, 0.5]]]
+        TARGETS = [[[2, 0, 0, 1, 1]]]
+        metric.update(PREDICTIONS, TARGETS)
+        self.assertEqual(metric._label_ids, {1, 2})
 
 
 if __name__ == '__main__':
