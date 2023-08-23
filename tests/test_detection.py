@@ -1,6 +1,4 @@
 import unittest
-from sklearn import metrics
-
 import torch
 
 from visionmetrics.detection import MeanAveragePrecision
