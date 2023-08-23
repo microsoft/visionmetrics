@@ -43,8 +43,7 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
     def compute(self):
         result = super().compute()
         if self.class_metrics:
-            sorted_label_ids = self._get_sorted_label_ids()
-            result['map_per_class'] = {sorted_label_ids[i]: v for i, v in enumerate(result['map_per_class'])}
+            result['map_per_class'] = {k.tolist(): v for k, v in zip(result['classes'], result['map_per_class'])}
             return {k: v for k, v in result.items() if k in ['map', 'map_50', 'map_75', 'map_per_class']}
         return {k: v for k, v in result.items() if k in ['map', 'map_50', 'map_75']}
 
@@ -69,15 +68,3 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
             return {'boxes': boxes[:, -4:], 'labels': boxes[:, 0].to(torch.int), 'scores': boxes[:, 1].to(torch.float)}
         else:
             return {'boxes': boxes[:, -4:], 'labels': boxes[:, 0].to(torch.int)}
-
-    def _get_sorted_label_ids(self) -> List[int]:
-        predictions_label_ids = self._flatten([label.tolist() for label in self.detection_labels])
-        targets_label_ids = self._flatten([label.tolist() for label in self.groundtruth_labels])
-        all_label_ids = list(set(predictions_label_ids + targets_label_ids))
-        return sorted(all_label_ids)
-
-    def _flatten(self, items: Union[List[int], List[List[int]]]) -> List[int]:
-        if isinstance(items, list):
-            return [item for i in items for item in self._flatten(i)]
-        else:
-            return [items]
