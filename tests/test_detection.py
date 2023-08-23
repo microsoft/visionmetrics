@@ -1,4 +1,5 @@
 import unittest
+from sklearn import metrics
 
 import torch
 
@@ -167,7 +168,7 @@ class TestDetection(unittest.TestCase):
                         [1, 1.0, 0, 0, 1, 1]]]
 
         TARGETS = [[[0, 0, 0, 1, 1],
-                    [1, 0, 0, 0, 0]]]  # Wrong
+                    [1, 0, 0, 0, 0]]]
 
         metric = MeanAveragePrecision(iou_thresholds=[0.5], class_metrics=True)
         metric.update(PREDICTIONS, TARGETS)
@@ -197,18 +198,41 @@ class TestDetection(unittest.TestCase):
         self.assertAlmostEqual(results['map_per_class'].get(1), -1.0, places=5)
         self.assertAlmostEqual(results['map_per_class'].get(2), 1.0, places=5)
 
-    def test_update_label_ids(self):
+    def test_class_wise_after_reset(self):
         PREDICTIONS = [[[1, 1.0, 0, 0, 1, 1]]]
         TARGETS = [[[1, 0, 0, 1, 1]]]
 
-        metric = MeanAveragePrecision(iou_thresholds=[0.5])
+        metric = MeanAveragePrecision(iou_thresholds=[0.5], class_metrics=True)
         metric.update(PREDICTIONS, TARGETS)
-        self.assertEqual(metric._label_ids, {1})
+        metric.reset()
 
-        PREDICTIONS = [[[1, 1.0, 0, 0, 0.5, 0.5]]]
+        PREDICTIONS = [[[2, 1.0, 0, 0, 1, 1]]]
         TARGETS = [[[2, 0, 0, 1, 1]]]
+
         metric.update(PREDICTIONS, TARGETS)
-        self.assertEqual(metric._label_ids, {1, 2})
+        results = metric.compute()
+
+        metric2 = MeanAveragePrecision(iou_thresholds=[0.5], class_metrics=True)
+        metric2.update(PREDICTIONS, TARGETS)
+        results2 = metric2.compute()
+
+        self.assertEqual(results['map_per_class'].get(1, "Does not exist"), "Does not exist")
+        self.assertAlmostEqual(results['map_per_class'].get(2), 1.0, places=5)
+        self.assertEqual(results, results2)
+
+    def test_class_wise_after_clone(self):
+        PREDICTIONS = [[[2, 1.0, 0, 0, 1, 1]]]
+        TARGETS = [[[2, 0, 0, 1, 1]]]
+
+        metric = MeanAveragePrecision(iou_thresholds=[0.5], class_metrics=True)
+        metric.update(PREDICTIONS, TARGETS)
+        results = metric.compute()
+
+        metric2 = MeanAveragePrecision(iou_thresholds=[0.5], class_metrics=True)
+        metric2.update(PREDICTIONS, TARGETS)
+        results2 = metric2.compute()
+
+        self.assertEqual(results, results2)
 
 
 if __name__ == '__main__':

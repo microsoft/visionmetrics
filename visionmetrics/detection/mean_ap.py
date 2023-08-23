@@ -1,6 +1,6 @@
 import torch
 from torchmetrics import detection
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 
 
 class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
@@ -34,18 +34,16 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
         if box_format != 'xyxy':
             raise ValueError(f'Expected box format to be "xyxy", got {box_format}')
         super().__init__(box_format=box_format, **kwargs)
-        self._label_ids = set()
 
     def update(self, predictions: List[List[List[float]]], targets: List[List[List[float]]]) -> None:
         predictions, targets = self._preprocess(predictions, targets)
-        self._update_label_ids(predictions)
-        self._update_label_ids(targets)
+
         super().update(predictions, targets)
 
     def compute(self):
         result = super().compute()
         if self.class_metrics:
-            sorted_label_ids = sorted(self._label_ids)
+            sorted_label_ids = self._get_sorted_label_ids()
             result['map_per_class'] = {sorted_label_ids[i]: v for i, v in enumerate(result['map_per_class'])}
             return {k: v for k, v in result.items() if k in ['map', 'map_50', 'map_75', 'map_per_class']}
         return {k: v for k, v in result.items() if k in ['map', 'map_50', 'map_75']}
@@ -72,6 +70,14 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
         else:
             return {'boxes': boxes[:, -4:], 'labels': boxes[:, 0].to(torch.int)}
 
-    def _update_label_ids(self, items: List[Dict[str, torch.Tensor]]) -> None:
-        for item in items:
-            self._label_ids.update(item['labels'].tolist())
+    def _get_sorted_label_ids(self) -> List[int]:
+        predictions_label_ids = self._flatten([label.tolist() for label in self.detection_labels])
+        targets_label_ids = self._flatten([label.tolist() for label in self.groundtruth_labels])
+        all_label_ids = list(set(predictions_label_ids + targets_label_ids))
+        return sorted(all_label_ids)
+
+    def _flatten(self, items: Union[List[int], List[List[int]]]) -> List[int]:
+        if isinstance(items, list):
+            return [item for i in items for item in self._flatten(i)]
+        else:
+            return [items]
