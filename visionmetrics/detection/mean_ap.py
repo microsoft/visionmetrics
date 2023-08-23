@@ -1,6 +1,6 @@
 import torch
 from torchmetrics import detection
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple
 
 
 class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
