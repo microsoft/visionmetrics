@@ -1,5 +1,9 @@
 # Import metrics directly from torchmetrics
-from torchmetrics.classification import (BinaryAUROC, MulticlassAUROC,
+from torchmetrics.classification import (BinaryAccuracy, BinaryAUROC,
+                                         BinaryAveragePrecision,
+                                         BinaryConfusionMatrix, BinaryF1Score,
+                                         BinaryPrecision, BinaryRecall,
+                                         MulticlassAUROC,
                                          MulticlassAveragePrecision,
                                          MulticlassCalibrationError,
                                          MulticlassConfusionMatrix,
