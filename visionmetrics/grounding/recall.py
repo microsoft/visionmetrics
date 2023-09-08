@@ -4,12 +4,13 @@ from torchmetrics import Metric
 
 class Recall(Metric):
     """
-    Compute Recall@1 for object grounding task.
+    Compute Recall@k for object grounding task.
     """
 
-    def __init__(self, iou_thresh=0.5):
+    def __init__(self, iou_thresh=0.5, k=1):
         super().__init__()
         self.iou_thresh = iou_thresh
+        self.topk = k
         self.add_state("predictions", default=[], dist_reduce_fx="cat")
         self.add_state("targets", default=[], dist_reduce_fx="cat")
 
@@ -44,20 +45,21 @@ class Recall(Metric):
     def compute(self, **kwargs):
         """
         Returns:
-            recall@1: recall@1 score
+            recall@k: top-k recall score
         """
+        total_prediction = 0
+        true_positive = 0
+
         for pred, target in zip(self.predictions, self.targets):
             pred_phrases, pred_bboxes = pred
             target_phrases, target_bboxes = target
-            total_prediction = 0
-            true_positive = 0
-
+            
             for target_phrase, target_bbox in zip(target_phrases, target_bboxes):
                 total_prediction += 1
                 if target_phrase in pred_phrases:
                     cur_boxes = pred_bboxes[pred_phrases.index(target_phrase)]
                     if len(cur_boxes) > 0 and len(target_bbox) > 0:
                         ious = self._box_iou(torch.tensor(cur_boxes), torch.tensor(target_bbox))
-                        if ious[:1].max() >= self.iou_thresh:
+                        if ious[:self.topk].max() >= self.iou_thresh:
                             true_positive += 1
-        return {'recall@1': true_positive / total_prediction}
+        return {f'recall@{self.topk}': true_positive / total_prediction}
