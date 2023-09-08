@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from torchmetrics import Metric
 
@@ -13,7 +12,7 @@ class Recall(Metric):
         self.iou_thresh = iou_thresh
         self.add_state("predictions", default=[], dist_reduce_fx="cat")
         self.add_state("targets", default=[], dist_reduce_fx="cat")
-    
+
     def _box_area(self, boxes):
         assert boxes.ndim == 2 and boxes.shape[-1] == 4
         return (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
@@ -30,7 +29,7 @@ class Recall(Metric):
         return iou
 
     def update(self, predictions, targets):
-        """ 
+        """
         Args:
             predictions: list of tuple predictions (pred_phrases, pred_bboxes) for image object grounding task:
                          [([pred_phrase1, pred_phrase2, ...], [[pred_bbox, pred_bbox, ...], [pred_bbox, pred_bbox, ...], ...]), ...], type: list of tuple.
