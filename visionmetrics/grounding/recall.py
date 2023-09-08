@@ -62,6 +62,7 @@ class Recall(Metric):
             for target_phrase, target_bbox in zip(target_phrases, target_bboxes):
                 total_prediction += 1
                 if target_phrase in pred_phrases:
+                    # Only consider the first matched prediction, need to be adjusted for multiple prediction
                     cur_boxes = pred_bboxes[pred_phrases.index(target_phrase)]
                     if len(cur_boxes) > 0 and len(target_bbox) > 0:
                         ious = self._box_iou(torch.tensor(cur_boxes), torch.tensor(target_bbox))
