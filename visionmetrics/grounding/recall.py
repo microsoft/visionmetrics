@@ -50,10 +50,15 @@ class Recall(Metric):
         total_prediction = 0
         true_positive = 0
 
+        assert len(self.predictions) == len(self.targets), "Number of predictions and targets must be equal."
+
         for pred, target in zip(self.predictions, self.targets):
             pred_phrases, pred_bboxes = pred
             target_phrases, target_bboxes = target
             
+            assert len(pred_phrases) == len(pred_bboxes), "Number of predicted phrases and predicted bboxes must be equal."
+            assert len(target_phrases) == len(target_bboxes), "Number of target phrases and target bboxes must be equal."
+
             for target_phrase, target_bbox in zip(target_phrases, target_bboxes):
                 total_prediction += 1
                 if target_phrase in pred_phrases:
