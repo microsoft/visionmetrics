@@ -46,7 +46,8 @@ The above metrics are available for Binary, Multiclass, and Multilabel classific
   - `RetrievalMAP`: computes [Mean Average Precision@k](https://stackoverflow.com/questions/54966320/mapk-computation), an information retrieval metric.
   - `RetrievalPrecisionRecallCurveNPoints`: computes a Precision-Recall Curve, interpolated at k points and averaged over all samples. 
 
-
+### Grounding
+  - `Recall`: computes Recall@k, which is the percentage of correct grounding in top-k among all relevant items
 ## Example Usage
 
 ```python
