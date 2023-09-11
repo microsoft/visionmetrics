@@ -1,7 +1,5 @@
-import pathlib
 import unittest
 
-import numpy as np
 from visionmetrics.grounding import Recall
 
 
