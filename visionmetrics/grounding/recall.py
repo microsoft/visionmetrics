@@ -9,6 +9,8 @@ class Recall(Metric):
 
     def __init__(self, iou_thresh=0.5, k=1):
         super().__init__()
+        if iou_thresh < 0 or iou_thresh > 1:
+            raise ValueError(f"iou_thresh must be in [0, 1], got {iou_thresh}.")
         self.iou_thresh = iou_thresh
         self.topk = k
         self.add_state("predictions", default=[], dist_reduce_fx="cat")
@@ -39,6 +41,16 @@ class Recall(Metric):
                      [([target_phrase1, target_phrase2, ...], [[target_bbox, target_bbox, ...], [target_bbox, target_bbox, ...], ...]), ...], type: list of tuple.
                      "target_bboxes" is a list of list of bbox (top, left, bottom, right) in absolute scale.
         """
+        if (len(predictions)!=len(targets)):
+            raise ValueError(f"Number of predictions and targets must be equal, got {len(predictions)} and {len(targets)}.")
+        for pred, target in zip(predictions, targets):
+            pred_phrases, pred_bboxes = pred
+            target_phrases, target_bboxes = target
+            if(len(pred_phrases)!=len(pred_bboxes)):
+                raise ValueError(f"Number of predicted phrases and predicted bboxes must be equal, got {len(pred_phrases)} and {len(pred_bboxes)}.")
+            if(len(target_phrases)!=len(target_bboxes)):
+                raise ValueError(f"Number of target phrases and target bboxes must be equal, got {len(target_phrases)} and {len(target_bboxes)}.")
+
         self.targets += targets
         self.predictions += predictions
 
@@ -47,20 +59,14 @@ class Recall(Metric):
         Returns:
             recall@k: top-k recall score
         """
-        total_prediction = 0
+        phrase_num = 0
         true_positive = 0
-
-        assert len(self.predictions) == len(self.targets), "Number of predictions and targets must be equal."
 
         for pred, target in zip(self.predictions, self.targets):
             pred_phrases, pred_bboxes = pred
             target_phrases, target_bboxes = target
-
-            assert len(pred_phrases) == len(pred_bboxes), "Number of predicted phrases and predicted bboxes must be equal."
-            assert len(target_phrases) == len(target_bboxes), "Number of target phrases and target bboxes must be equal."
-
             for target_phrase, target_bbox in zip(target_phrases, target_bboxes):
-                total_prediction += 1
+                phrase_num += 1
                 if target_phrase in pred_phrases:
                     # Only consider the first matched prediction, need to be adjusted for multiple prediction
                     cur_boxes = pred_bboxes[pred_phrases.index(target_phrase)]
@@ -68,4 +74,4 @@ class Recall(Metric):
                         ious = self._box_iou(torch.tensor(cur_boxes), torch.tensor(target_bbox))
                         if ious[:self.topk].max() >= self.iou_thresh:
                             true_positive += 1
-        return {f'recall@{self.topk}': true_positive / total_prediction}
+        return {f'recall@{self.topk}': true_positive / phrase_num}
