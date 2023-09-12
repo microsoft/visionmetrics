@@ -9,8 +9,12 @@ class Recall(Metric):
 
     def __init__(self, iou_thresh=0.5, k=1):
         super().__init__()
-        if iou_thresh < 0 or iou_thresh > 1:
+        if not (0 <= iou_thresh <= 1):
             raise ValueError(f"iou_thresh must be in [0, 1], got {iou_thresh}.")
+        
+        if not isinstance(k, int) or not (1 <= k <= 5):
+            raise ValueError(f"k must be an integer in [1, 5], got {k}.")
+
         self.iou_thresh = iou_thresh
         self.topk = k
         self.add_state("predictions", default=[], dist_reduce_fx="cat")
