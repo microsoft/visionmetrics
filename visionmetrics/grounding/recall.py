@@ -47,11 +47,13 @@ class Recall(Metric):
         """
         if (len(predictions) != len(targets)):
             raise ValueError(f"Number of predictions and targets must be equal, got {len(predictions)} and {len(targets)}.")
+
         for pred, target in zip(predictions, targets):
             pred_phrases, pred_bboxes = pred
             target_phrases, target_bboxes = target
             if(len(pred_phrases) != len(pred_bboxes)):
                 raise ValueError(f"Number of predicted phrases and predicted bboxes must be equal, got {len(pred_phrases)} and {len(pred_bboxes)}.")
+
             if(len(target_phrases) != len(target_bboxes)):
                 raise ValueError(f"Number of target phrases and target bboxes must be equal, got {len(target_phrases)} and {len(target_bboxes)}.")
 
