@@ -11,7 +11,7 @@ class Recall(Metric):
         super().__init__()
         if not (0 <= iou_thresh <= 1):
             raise ValueError(f"iou_thresh must be in [0, 1], got {iou_thresh}.")
-        
+
         if not isinstance(k, int) or not (1 <= k <= 5):
             raise ValueError(f"k must be an integer in [1, 5], got {k}.")
 
@@ -25,6 +25,17 @@ class Recall(Metric):
         return (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
 
     def _box_iou(self, boxes1, boxes2):
+        """
+        Compute intersection-over-union of input boxes. Both sets of boxes are expected to be in (top, left, bottom, right) format.
+
+        Args:
+            boxes1 (Tensor[N, 4])
+            boxes2 (Tensor[M, 4])
+
+        Returns:
+            iou (Tensor[N, M]): the NxM matrix containing the pairwise IoU values for every element in boxes1 and boxes2
+        """
+
         area1 = self._box_area(boxes1)
         area2 = self._box_area(boxes2)
         lt = torch.maximum(boxes1[:, None, :2], boxes2[:, :2])
