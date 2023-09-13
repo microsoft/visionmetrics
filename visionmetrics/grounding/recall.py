@@ -85,7 +85,8 @@ class Recall(Metric):
             for target_phrase, target_bbox in zip(target_phrases, target_bboxes):
                 phrase_num += 1
                 pred_phrases = [phrase.lower() for phrase in pred_phrases]
-                if target_phrase.lower() in pred_phrases:
+                target_phrase = target_phrase.lower()
+                if target_phrase in pred_phrases:
                     # Only consider the first matched prediction, need to be adjusted for multiple prediction
                     cur_boxes = pred_bboxes[pred_phrases.index(target_phrase)]
                     if len(cur_boxes) > 0 and len(target_bbox) > 0:
