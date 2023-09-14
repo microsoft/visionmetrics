@@ -12,8 +12,8 @@ class Recall(Metric):
         if not (0 <= iou_thresh <= 1):
             raise ValueError(f"iou_thresh must be in [0, 1], got {iou_thresh}.")
 
-        if not isinstance(k, int) or not (1 <= k <= 5):
-            raise ValueError(f"k must be an integer in [1, 5], got {k}.")
+        if not isinstance(k, int) or not (k >= 1):
+            raise ValueError(f"k must be a postive integer, got {k}.")
 
         self.iou_thresh = iou_thresh
         self.topk = k
