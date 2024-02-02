@@ -20,7 +20,3 @@ jobs:
         run: pytest
       - name: Flake8
         run: flake8
-  build-me-read:
-    name: Build-Me-Read
-    runs-on: ubuntu-latest
-    permissions: read-all
