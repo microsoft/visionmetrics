@@ -1,6 +1,7 @@
+from typing import Dict, List, Tuple
+
 import torch
 from torchmetrics import detection
-from typing import List, Dict, Tuple
 
 
 class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
@@ -29,7 +30,10 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
     ```
     """
 
-    def __init__(self, box_format='xyxy', **kwargs):
+    def __init__(self, box_format='xyxy', coords='relative', **kwargs):
+        if coords not in ['relative', 'absolute']:
+            raise ValueError(f'Expected coordinates to be "relative" or "absolute", got {coords}')
+        self.coords = coords
         # TODO: add support for other box formats
         if box_format != 'xyxy':
             raise ValueError(f'Expected box format to be "xyxy", got {box_format}')
@@ -41,7 +45,12 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
 
     def compute(self):
         result = super().compute()
-        return {k: v for k, v in result.items() if k in ['map', 'map_50', 'map_75', 'map_per_class', 'classes']}
+        common_keys = ['map', 'map_50', 'map_75', 'map_per_class', 'classes']
+        if self.coords == 'relative':
+            keys = common_keys
+        elif self.coords == 'absolute':
+            keys = common_keys + ['map_small', 'map_medium', 'map_large']
+        return {k: v for k, v in result.items() if k in keys}
 
     def _preprocess(self, predictions: List[List[List[float]]], targets: List[List[List[float]]]) -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]:
         predictions = [self._convert_to_dict(p) for p in predictions]
