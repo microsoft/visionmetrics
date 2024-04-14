@@ -162,6 +162,23 @@ class TestDetection(unittest.TestCase):
         for k in result.keys():
             self.assertTrue(torch.allclose(result[k], result_remap_cat_id[k]))
 
+    def test_map_small_medium_large(self):
+        PREDICTIONS = [[[0, 1.0, 0, 0, 32, 32],  # <= 32**2
+                        [1, 1.0, 0, 0, 96, 96],  # >= 32**2, <= 96**2
+                        [2, 1.0, 0, 0, 100, 100]]]  # > 96**2
+
+        TARGETS = [[[0, 0, 0, 32, 32],
+                    [1, 5, 5, 96, 96],
+                    [2, 1, 1, 100, 100]]]
+
+        metric = MeanAveragePrecision(coords='absolute', iou_thresholds=[0.5])
+        metric.update(PREDICTIONS, TARGETS)
+        result = metric.compute()
+
+        self.assertAlmostEqual(result['map_small'].item(), 1.0, places=5)
+        self.assertAlmostEqual(result['map_medium'].item(), 1.0, places=5)
+        self.assertAlmostEqual(result['map_large'].item(), 1.0, places=5)
+
 
 if __name__ == '__main__':
     unittest.main()
