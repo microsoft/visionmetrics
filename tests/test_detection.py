@@ -209,6 +209,21 @@ class TestClassAgnosticAveragePrecision(unittest.TestCase):
         self.assertEqual(result['classes'], -1)
         self.assertEqual(result['map_per_class'], -1)
 
+    def test_two_images(self):
+        PREDICTIONS = [[[0, 1.0, 0, 0, 1, 1],
+                        [1, 1.0, 0.5, 0.5, 1, 1]],
+                       [[2, 1.0, 0.1, 0.1, 0.5, 0.5]]]
+
+        TARGETS = [[[1, 0, 0, 1, 1],
+                    [2, 0.5, 0.5, 1, 1]],
+                   [[1, 0.1, 0.1, 0.5, 0.5]]]
+
+        metric = ClassAgnosticAveragePrecision(iou_thresholds=[0.5])
+        metric.update(PREDICTIONS, TARGETS)
+        result = metric.compute()
+        self.assertEqual(result['map_50'], 1.0)
+        self.assertEqual(result['classes'], -1)
+
 
 if __name__ == '__main__':
     unittest.main()
