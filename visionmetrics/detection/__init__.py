@@ -2,4 +2,5 @@
 
 
 # Import custom metrics from visionmetrics
-from visionmetrics.detection.mean_ap import MeanAveragePrecision
+from visionmetrics.detection.mean_ap import (ClassAgnosticAveragePrecision,
+                                             MeanAveragePrecision)
