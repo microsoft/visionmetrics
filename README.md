@@ -21,6 +21,7 @@ The above metrics are available for Binary, Multiclass, and Multilabel classific
 
 ### Object Detection:
 - `MeanAveragePrecision`: Coco mean average precision (mAP) computation across different classes, under multiple [IoU(s)](https://en.wikipedia.org/wiki/Jaccard_index).
+- `ClassAgnosticAveragePrecision`: Coco mean average prevision (mAP) calculated in a class-agnostic manner. Considers all classes as one class.
 
 ### Image Caption:
   - `BleuScore`: computes the Bleu score. For more details, refer to [BLEU: a Method for Automatic Evaluation of Machine Translation](http://www.aclweb.org/anthology/P02-1040.pdf).

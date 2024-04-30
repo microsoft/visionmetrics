@@ -73,3 +73,19 @@ class MeanAveragePrecision(detection.mean_ap.MeanAveragePrecision):
             return {'boxes': boxes[:, -4:], 'labels': boxes[:, 0].to(torch.int), 'scores': boxes[:, 1].to(torch.float)}
         else:
             return {'boxes': boxes[:, -4:], 'labels': boxes[:, 0].to(torch.int)}
+
+
+class ClassAgnosticAveragePrecision(MeanAveragePrecision):
+    """
+    Calculates the average precision (AP) for object detection tasks in a class-agnostic manner.
+    It treats all classes as a single class (-1) and evaluates average precision for this class.
+    """
+
+    def update(self, predictions: List[List[List[float]]], targets: List[List[List[float]]]) -> None:
+        predictions, targets = self._make_class_agnostic(predictions), self._make_class_agnostic(targets)
+        return super().update(predictions, targets)
+
+    def _make_class_agnostic(self, preds_or_targets: List[List[List[float]]]) -> List[List[List[float]]]:
+        # Replace the class labels with -1
+        preds_or_targets = [[[-1] + box[1:] for box in boxes_per_img] for boxes_per_img in preds_or_targets]
+        return preds_or_targets

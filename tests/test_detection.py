@@ -2,10 +2,11 @@ import unittest
 
 import torch
 
-from visionmetrics.detection import MeanAveragePrecision
+from visionmetrics.detection import (ClassAgnosticAveragePrecision,
+                                     MeanAveragePrecision)
 
 
-class TestDetection(unittest.TestCase):
+class TestMeanAveragePrecision(unittest.TestCase):
     def test_perfect_one_image_absolute_coordinates(self):
 
         PREDICTIONS = [[[0, 1.0, 0, 0, 10, 10],
@@ -178,6 +179,50 @@ class TestDetection(unittest.TestCase):
         self.assertAlmostEqual(result['map_small'].item(), 1.0, places=5)
         self.assertAlmostEqual(result['map_medium'].item(), 1.0, places=5)
         self.assertAlmostEqual(result['map_large'].item(), 1.0, places=5)
+
+
+class TestClassAgnosticAveragePrecision(unittest.TestCase):
+    def test_class_agnostic_ap_correct(self):
+        PREDICTIONS = [[[0, 1.0, 0, 0, 1, 1]]]
+        TARGETS = [[[1, 0, 0, 1, 1]]]
+
+        metric = ClassAgnosticAveragePrecision(iou_thresholds=[0.5], class_metrics=False)
+        metric.update(PREDICTIONS, TARGETS)
+        result = metric.compute()
+        self.assertEqual(result['map_50'], 1.0)
+        self.assertEqual(result['classes'], -1)
+        self.assertEqual(result['map_per_class'], -1)
+
+        metric = ClassAgnosticAveragePrecision(iou_thresholds=[0.5], class_metrics=True)
+        metric.update(PREDICTIONS, TARGETS)
+        result = metric.compute()
+        self.assertEqual(result['classes'], -1)
+        self.assertEqual(result['map_per_class'], 1)
+
+    def test_class_agnostic_ap_incorrect(self):
+        PREDICTIONS = [[[0, 1.0, 0, 0, 1, 1]]]
+        TARGETS = [[[1, 0, 0, 0.1, 0.1]]]
+        metric = ClassAgnosticAveragePrecision(iou_thresholds=[0.5])
+        metric.update(PREDICTIONS, TARGETS)
+        result = metric.compute()
+        self.assertEqual(result['map_50'], 0.0)
+        self.assertEqual(result['classes'], -1)
+        self.assertEqual(result['map_per_class'], -1)
+
+    def test_two_images(self):
+        PREDICTIONS = [[[0, 1.0, 0, 0, 1, 1],
+                        [1, 1.0, 0.5, 0.5, 1, 1]],
+                       [[2, 1.0, 0.1, 0.1, 0.5, 0.5]]]
+
+        TARGETS = [[[1, 0, 0, 1, 1],
+                    [2, 0.5, 0.5, 1, 1]],
+                   [[1, 0.1, 0.1, 0.5, 0.5]]]
+
+        metric = ClassAgnosticAveragePrecision(iou_thresholds=[0.5])
+        metric.update(PREDICTIONS, TARGETS)
+        result = metric.compute()
+        self.assertEqual(result['map_50'], 1.0)
+        self.assertEqual(result['classes'], -1)
 
 
 if __name__ == '__main__':
