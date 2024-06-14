@@ -52,7 +52,7 @@ class DetectionConfusionMatrix(Metric):
             'FP_due_to_low_iou': self.fp_due_to_low_iou.item(),
             'FP_due_to_no_corresponding_gt_box': self.fp_due_to_no_corresponding_gt_box.item()
         }
-       
+    
     def _update_confusion_matrix(self, predictions, targets, iou_threshold):
         for preds, gts in zip(predictions, targets):
             gt_used = [False] * len(gts)
@@ -95,7 +95,7 @@ class DetectionConfusionMatrix(Metric):
             for gt_index, gt in enumerate(gts):
                 if not gt_used[gt_index]:
                     self.fn += 1
-      
+
     @staticmethod
     def iou(box1, box2):
         """
