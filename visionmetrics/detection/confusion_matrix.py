@@ -34,7 +34,6 @@ class DetectionConfusionMatrix(Metric):
         self.add_state("fp_due_to_wrong_class", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("fp_due_to_low_iou", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("fp_due_to_no_corresponding_gt_box", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("confusion_matrix", default=[], dist_reduce_fx=None)
 
     def update(self, predictions, targets):
         if len(predictions) != len(targets):
@@ -42,11 +41,18 @@ class DetectionConfusionMatrix(Metric):
         if not isinstance(predictions[0][0], list):
             raise ValueError(f"Expected predictions to be a list of lists, got a list of {type(predictions[0][0])}")
 
-        self.confusion_matrix.append(self._update_confusion_matrix(predictions, targets, self.iou_threshold))
+        self._update_confusion_matrix(predictions, targets, self.iou_threshold)
 
     def compute(self):
-        return self.confusion_matrix[-1]
-
+        return {
+            'TP': self.tp.item(),
+            'FP': self.fp.item(),
+            'FN': self.fn.item(),
+            'FP_due_to_wrong_class': self.fp_due_to_wrong_class.item(),
+            'FP_due_to_low_iou': self.fp_due_to_low_iou.item(),
+            'FP_due_to_no_corresponding_gt_box': self.fp_due_to_no_corresponding_gt_box.item()
+        }
+       
     def _update_confusion_matrix(self, predictions, targets, iou_threshold):
         for preds, gts in zip(predictions, targets):
             gt_used = [False] * len(gts)
@@ -89,18 +95,7 @@ class DetectionConfusionMatrix(Metric):
             for gt_index, gt in enumerate(gts):
                 if not gt_used[gt_index]:
                     self.fn += 1
-
-        confusion_matrix = {
-            'TP': self.tp.item(),
-            'FP': self.fp.item(),
-            'FN': self.fn.item(),
-            'FP_due_to_wrong_class': self.fp_due_to_wrong_class.item(),
-            'FP_due_to_low_iou': self.fp_due_to_low_iou.item(),
-            'FP_due_to_no_corresponding_gt_box': self.fp_due_to_no_corresponding_gt_box.item()
-        }
-
-        return confusion_matrix
-
+      
     @staticmethod
     def iou(box1, box2):
         """
