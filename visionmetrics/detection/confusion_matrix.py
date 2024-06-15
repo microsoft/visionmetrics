@@ -23,6 +23,14 @@ class DetectionConfusionMatrix(Metric):
         -------
         confusion_matrix : dict
             Dictionary containing the counts of TP, FP, and FN, as well as details for FP reasons
+            
+            TP: When a predicted bounding box has IoU greater than the threshold with a ground truth box of the same class
+            FN: When a ground truth bounding box has no corresponding predicted bounding box
+            FP:
+                1. FP_due_to_wrong_class: Predicted class is different from the ground truth class. Note: this category takes precedence over FP_due_to_low_iou when both conditions are met.
+                2. FP_due_to_low_iou: Predicted bounding box has IoU less than the threshold (including no overlap)
+                3. fp_due_to_extra_pred_boxes: Excess predicted bounding boxes when all ground truth boxes have been matched
+            
         """
 
     def __init__(self, iou_threshold=0.5, **kwargs):
@@ -33,7 +41,7 @@ class DetectionConfusionMatrix(Metric):
         self.add_state("fn", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("fp_due_to_wrong_class", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("fp_due_to_low_iou", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("fp_due_to_no_corresponding_gt_box", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state("fp_due_to_extra_pred_boxes", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, predictions, targets):
         if len(predictions) != len(targets):
@@ -50,13 +58,14 @@ class DetectionConfusionMatrix(Metric):
             'FN': self.fn.item(),
             'FP_due_to_wrong_class': self.fp_due_to_wrong_class.item(),
             'FP_due_to_low_iou': self.fp_due_to_low_iou.item(),
-            'FP_due_to_no_corresponding_gt_box': self.fp_due_to_no_corresponding_gt_box.item()
+            'FP_due_to_extra_pred_boxes': self.fp_due_to_extra_pred_boxes.item()
         }
 
     def _update_confusion_matrix(self, predictions, targets, iou_threshold):
         for preds, gts in zip(predictions, targets):
             gt_used = [False] * len(gts)
-
+            
+            preds = sorted(preds, key=lambda x: x[1], reverse=True)
             for pred in preds:
                 pred_class_id, score, pred_xmin, pred_ymin, pred_xmax, pred_ymax = pred
                 pred_box = [pred_xmin, pred_ymin, pred_xmax, pred_ymax]
@@ -73,7 +82,7 @@ class DetectionConfusionMatrix(Metric):
 
                     if pred_class_id == gt_class_id:
                         current_iou = self.iou(pred_box, gt_box)
-                        if current_iou > best_iou:
+                        if current_iou >= best_iou:
                             best_iou = current_iou
                             best_gt_index = gt_index
 
@@ -82,13 +91,12 @@ class DetectionConfusionMatrix(Metric):
                         self.tp += 1
                         gt_used[best_gt_index] = True
                     else:
-
                         self.fp += 1
                         self.fp_due_to_low_iou += 1
                 else:
                     self.fp += 1
                     if all(gt_used):
-                        self.fp_due_to_no_corresponding_gt_box += 1
+                        self.fp_due_to_extra_pred_boxes += 1
                     else:
                         self.fp_due_to_wrong_class += 1
 
