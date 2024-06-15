@@ -23,14 +23,14 @@ class DetectionConfusionMatrix(Metric):
         -------
         confusion_matrix : dict
             Dictionary containing the counts of TP, FP, and FN, as well as details for FP reasons
-            
+
             TP: When a predicted bounding box has IoU greater than the threshold with a ground truth box of the same class
             FN: When a ground truth bounding box has no corresponding predicted bounding box
             FP:
                 1. FP_due_to_wrong_class: Predicted class is different from the ground truth class. Note: this category takes precedence over FP_due_to_low_iou when both conditions are met.
                 2. FP_due_to_low_iou: Predicted bounding box has IoU less than the threshold (including no overlap)
                 3. fp_due_to_extra_pred_boxes: Excess predicted bounding boxes when all ground truth boxes have been matched
-            
+
         """
 
     def __init__(self, iou_threshold=0.5, **kwargs):
@@ -64,7 +64,7 @@ class DetectionConfusionMatrix(Metric):
     def _update_confusion_matrix(self, predictions, targets, iou_threshold):
         for preds, gts in zip(predictions, targets):
             gt_used = [False] * len(gts)
-            
+
             preds = sorted(preds, key=lambda x: x[1], reverse=True)
             for pred in preds:
                 pred_class_id, score, pred_xmin, pred_ymin, pred_xmax, pred_ymax = pred
