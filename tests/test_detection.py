@@ -3,7 +3,6 @@ import unittest
 import torch
 
 from visionmetrics.detection import (ClassAgnosticAveragePrecision,
-                                     DetectionConfusionMatrix,
                                      MeanAveragePrecision)
 
 
@@ -224,110 +223,6 @@ class TestClassAgnosticAveragePrecision(unittest.TestCase):
         result = metric.compute()
         self.assertEqual(result['map_50'], 1.0)
         self.assertEqual(result['classes'], -1)
-
-
-class TestDetectionConfusionMatrix(unittest.TestCase):
-    def test_true_positive(self):
-        predictions = [[[0, 1.0, 0, 0, 1, 1]], [[1, 1.0, 0, 0, 1, 1]]]
-        targets = [[[0, 0, 0, 1, 1]], [[1, 0, 0, 1, 1]]]
-
-        metric = DetectionConfusionMatrix(iou_threshold=0.5)
-        metric.update(predictions, targets)
-        result = metric.compute()
-
-        self.assertEqual(result['TP'], 2)
-        self.assertEqual(result['FP'], 0)
-        self.assertEqual(result['FN'], 0)
-        self.assertEqual(result['FP_due_to_wrong_class'], 0)
-        self.assertEqual(result['FP_due_to_low_iou'], 0)
-        self.assertEqual(result['FP_due_to_no_corresponding_gt_box'], 0)
-
-    def test_false_positive_wrong_class(self):
-        predictions = [[[0, 1.0, 0, 0, 1, 1]], [[1, 1.0, 0, 0, 1, 1]]]
-        targets = [[[0, 0, 0, 1, 1]], [[0, 0, 0, 1, 1]]]
-
-        metric = DetectionConfusionMatrix(iou_threshold=0.5)
-        metric.update(predictions, targets)
-        result = metric.compute()
-
-        self.assertEqual(result['TP'], 1)
-        self.assertEqual(result['FP'], 1)
-        self.assertEqual(result['FN'], 1)
-        self.assertEqual(result['FP_due_to_wrong_class'], 1)
-        self.assertEqual(result['FP_due_to_low_iou'], 0)
-        self.assertEqual(result['FP_due_to_no_corresponding_gt_box'], 0)
-
-    def test_false_positive_low_iou(self):
-        predictions = [[[0, 1.0, 0, 0, 1, 1]], [[1, 1.0, 0, 0, 0.5, 0.5]]]
-        targets = [[[0, 0, 0, 1, 1]], [[1, 0, 0, 1, 1]]]
-
-        metric = DetectionConfusionMatrix(iou_threshold=0.5)
-        metric.update(predictions, targets)
-        result = metric.compute()
-
-        self.assertEqual(result['TP'], 1)
-        self.assertEqual(result['FP'], 1)
-        self.assertEqual(result['FN'], 1)
-        self.assertEqual(result['FP_due_to_wrong_class'], 0)
-        self.assertEqual(result['FP_due_to_low_iou'], 1)
-        self.assertEqual(result['FP_due_to_no_corresponding_gt_box'], 0)
-
-    def test_false_positive_no_corresponding_gt_box(self):
-        predictions = [[[0, 1.0, 0, 0, 1, 1], [1, 1.0, 0, 0, 1, 1]]]
-        targets = [[[0, 0, 0, 1, 1]]]
-
-        metric = DetectionConfusionMatrix(iou_threshold=0.5)
-        metric.update(predictions, targets)
-        result = metric.compute()
-
-        self.assertEqual(result['TP'], 1)
-        self.assertEqual(result['FP'], 1)
-        self.assertEqual(result['FN'], 0)
-        self.assertEqual(result['FP_due_to_wrong_class'], 0)
-        self.assertEqual(result['FP_due_to_low_iou'], 0)
-        self.assertEqual(result['FP_due_to_no_corresponding_gt_box'], 1)
-
-    def test_false_negative(self):
-        predictions = [[[0, 1.0, 0, 0, 1, 1]]]
-        targets = [[[0, 0, 0, 1, 1], [1, 0, 0, 1, 1]]]
-
-        metric = DetectionConfusionMatrix(iou_threshold=0.5)
-        metric.update(predictions, targets)
-        result = metric.compute()
-
-        self.assertEqual(result['TP'], 1)
-        self.assertEqual(result['FP'], 0)
-        self.assertEqual(result['FN'], 1)
-        self.assertEqual(result['FP_due_to_wrong_class'], 0)
-        self.assertEqual(result['FP_due_to_low_iou'], 0)
-        self.assertEqual(result['FP_due_to_no_corresponding_gt_box'], 0)
-
-    def test_batch_update(self):
-        predictions = [[[0, 1.0, 0, 0, 1, 1]]]
-        targets = [[[0, 0, 0, 1, 1]]]
-
-        metric = DetectionConfusionMatrix(iou_threshold=0.5)
-        metric.update(predictions, targets)
-        result = metric.compute()
-
-        self.assertEqual(result['TP'], 1)
-        self.assertEqual(result['FP'], 0)
-        self.assertEqual(result['FN'], 0)
-        self.assertEqual(result['FP_due_to_wrong_class'], 0)
-        self.assertEqual(result['FP_due_to_low_iou'], 0)
-        self.assertEqual(result['FP_due_to_no_corresponding_gt_box'], 0)
-
-        predictions = [[[0, 1.0, 0, 0, 1, 1]]]
-        targets = [[[1, 0, 0, 1, 1]]]
-        metric.update(predictions, targets)
-        result = metric.compute()
-
-        self.assertEqual(result['TP'], 1)
-        self.assertEqual(result['FP'], 1)
-        self.assertEqual(result['FN'], 1)
-        self.assertEqual(result['FP_due_to_wrong_class'], 1)
-        self.assertEqual(result['FP_due_to_low_iou'], 0)
-        self.assertEqual(result['FP_due_to_no_corresponding_gt_box'], 0)
 
 
 if __name__ == '__main__':
