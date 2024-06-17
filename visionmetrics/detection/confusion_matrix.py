@@ -27,9 +27,9 @@ class DetectionConfusionMatrix(Metric):
             TP: When a predicted bounding box has IoU greater than the threshold with a ground truth box of the same class
             FN: When a ground truth bounding box has no corresponding predicted bounding box
             FP:
-                1. FP_due_to_wrong_class: Predicted class is different from the ground truth class. Note: this category takes precedence over FP_due_to_low_iou when both conditions are met.
-                2. FP_due_to_low_iou: Predicted bounding box has IoU less than the threshold (including no overlap)
-                3. fp_due_to_extra_pred_boxes: Excess predicted bounding boxes when all ground truth boxes have been matched
+                1. FP_due_to_wrong_class: IOU >= threshold but predicted class is different from the ground truth class. 
+                2. FP_due_to_low_iou: Predicted bbox IOU < threshold (including no overlap)
+                3. fp_due_to_extra_pred_boxes: Excess predicted bboxes when all ground truth boxes have been matched
 
         """
 
