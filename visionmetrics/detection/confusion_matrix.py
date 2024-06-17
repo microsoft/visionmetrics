@@ -63,46 +63,85 @@ class DetectionConfusionMatrix(Metric):
 
     def _update_confusion_matrix(self, predictions, targets, iou_threshold):
         for preds, gts in zip(predictions, targets):
-            gt_used = [False] * len(gts)
 
+            # Check empty predictions and targets
+            if self._is_empty(preds):
+                self.fn += len(gts)
+                continue
+
+            if self._is_empty(gts):
+                self.fp += len(preds)
+                self.fp_due_to_extra_pred_boxes += len(preds)
+                continue
+
+            # Count per image
+            gt_used = [False] * len(gts)
             preds = sorted(preds, key=lambda x: x[1], reverse=True)
             for pred in preds:
-                pred_class_id, score, pred_xmin, pred_ymin, pred_xmax, pred_ymax = pred
-                pred_box = [pred_xmin, pred_ymin, pred_xmax, pred_ymax]
+                pred_class_id, pred_box = pred[0], pred[2:]
 
-                best_iou = 0
-                best_gt_index = -1
+                best_same_class_iou = 0
+                best_same_class_gt_index = -1
+                best_diff_class_iou = 0
+                # best_diff_class_gt_index = -1
 
                 for gt_index, gt in enumerate(gts):
                     if gt_used[gt_index]:
                         continue
 
-                    gt_class_id, gt_xmin, gt_ymin, gt_xmax, gt_ymax = gt
-                    gt_box = [gt_xmin, gt_ymin, gt_xmax, gt_ymax]
+                    gt_class_id, gt_box = gt[0], gt[1:]
+                    current_iou = self.iou(pred_box, gt_box)
 
                     if pred_class_id == gt_class_id:
-                        current_iou = self.iou(pred_box, gt_box)
-                        if current_iou >= best_iou:
-                            best_iou = current_iou
-                            best_gt_index = gt_index
+                        if current_iou > best_same_class_iou:
+                            best_same_class_iou = current_iou
+                            best_same_class_gt_index = gt_index
+                    else:
+                        if current_iou > best_diff_class_iou:
+                            best_diff_class_iou = current_iou
+                            # best_diff_class_gt_index = gt_index
 
-                if best_gt_index != -1:
-                    if best_iou >= iou_threshold:
+                if all(gt_used):
+                    self.fp += 1
+                    self.fp_due_to_extra_pred_boxes += 1
+                    continue
+
+                if best_same_class_gt_index != -1:
+                    if best_same_class_iou >= iou_threshold:
                         self.tp += 1
-                        gt_used[best_gt_index] = True
+                        gt_used[best_same_class_gt_index] = True
                     else:
                         self.fp += 1
                         self.fp_due_to_low_iou += 1
                 else:
-                    self.fp += 1
-                    if all(gt_used):
-                        self.fp_due_to_extra_pred_boxes += 1
-                    else:
+                    if best_diff_class_iou >= iou_threshold:
+                        self.fp += 1
                         self.fp_due_to_wrong_class += 1
+                    else:
+                        self.fp += 1
+                        self.fp_due_to_low_iou += 1
+
+                # if best_gt_index != -1:
+                #     if best_iou >= iou_threshold:
+                #         self.tp += 1
+                #         gt_used[best_gt_index] = True
+                #     else:
+                #         self.fp += 1
+                #         self.fp_due_to_low_iou += 1
+                # else:
+                #     self.fp += 1
+                #     if all(gt_used):
+                #         self.fp_due_to_extra_pred_boxes += 1
+                #     else:
+                #         self.fp_due_to_wrong_class += 1
 
             for gt_index, gt in enumerate(gts):
                 if not gt_used[gt_index]:
                     self.fn += 1
+
+    @staticmethod
+    def _is_empty(pred_or_gt):
+        return all([len(x) == 0 for x in pred_or_gt])
 
     @staticmethod
     def iou(box1, box2):
