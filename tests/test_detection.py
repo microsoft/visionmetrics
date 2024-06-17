@@ -418,8 +418,7 @@ class TestDetectionConfusionMatrix(unittest.TestCase):
         self.assertEqual(result['FP_due_to_wrong_class'], 1)
         self.assertEqual(result['FP_due_to_low_iou'], 0)
         self.assertEqual(result['FP_due_to_extra_pred_boxes'], 10)
-        
-    
+
     def two_images_one_low_iou(self):
         predictions = [[[0, 1.0, 0, 0, 1, 1]], [[1, 1.0, 0, 0, 0.5, 0.5]]]
         targets = [[[0, 0, 0, 1, 1]], [[1, 0, 0, 1, 1]]]
