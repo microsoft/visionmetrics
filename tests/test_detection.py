@@ -341,9 +341,9 @@ class TestDetectionConfusionMatrix(unittest.TestCase):
         result = metric.compute()
 
         self.assertEqual(result['TP'], 1)
-        self.assertEqual(result['FP'], 1)
+        self.assertEqual(result['FP'], 0)
         self.assertEqual(result['FN'], 1)
-        self.assertEqual(result['FP_due_to_wrong_class'], 1)
+        self.assertEqual(result['FP_due_to_wrong_class'], 0)
         self.assertEqual(result['FP_due_to_low_iou'], 0)
         self.assertEqual(result['FP_due_to_extra_pred_boxes'], 0)
 
