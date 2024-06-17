@@ -27,9 +27,9 @@ class DetectionConfusionMatrix(Metric):
             TP: When a predicted bounding box has IoU greater than the threshold with a ground truth box of the same class
             FN: When a ground truth bounding box has no corresponding predicted bounding box
             FP:
-                1. FP_due_to_wrong_class: Predicted class is different from the ground truth class. Note: this category takes precedence over FP_due_to_low_iou when both conditions are met.
-                2. FP_due_to_low_iou: Predicted bounding box has IoU less than the threshold (including no overlap)
-                3. fp_due_to_extra_pred_boxes: Excess predicted bounding boxes when all ground truth boxes have been matched
+                1. FP_due_to_wrong_class: IOU >= threshold but predicted class is different from the ground truth class.
+                2. FP_due_to_low_iou: Predicted bbox IOU < threshold (including no overlap)
+                3. fp_due_to_extra_pred_boxes: Excess predicted bboxes when all ground truth boxes have been matched
 
         """
 
@@ -77,6 +77,8 @@ class DetectionConfusionMatrix(Metric):
             # Count per image
             gt_used = [False] * len(gts)
             preds = sorted(preds, key=lambda x: x[1], reverse=True)
+
+            # Iterate over predictions and ground truth boxes for each image
             for pred in preds:
                 pred_class_id, pred_box = pred[0], pred[2:]
 
@@ -84,6 +86,13 @@ class DetectionConfusionMatrix(Metric):
                 best_same_class_gt_index = -1
                 best_diff_class_iou = 0
                 # best_diff_class_gt_index = -1
+
+                # If all GT boxes for this image have been matched
+                # with a prediction bbox then all remaining predictions are FPs
+                if all(gt_used):
+                    self.fp += 1
+                    self.fp_due_to_extra_pred_boxes += 1
+                    continue
 
                 for gt_index, gt in enumerate(gts):
                     if gt_used[gt_index]:
@@ -135,6 +144,7 @@ class DetectionConfusionMatrix(Metric):
                 #     else:
                 #         self.fp_due_to_wrong_class += 1
 
+            # Count unused GT boxes as FNs
             for gt_index, gt in enumerate(gts):
                 if not gt_used[gt_index]:
                     self.fn += 1
