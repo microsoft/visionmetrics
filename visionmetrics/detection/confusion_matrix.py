@@ -65,44 +65,68 @@ class DetectionConfusionMatrix(Metric):
         for preds, gts in zip(predictions, targets):
             gt_used = [False] * len(gts)
 
+            # Empty prediction list: count all GT boxes as FN
+            if self._is_empty(preds):
+                self.fn += len(gts)
+                continue
+
+            # Empty GT list: count all prediction boxes as FP
+            if self._is_empty(gts):
+                self.fp += len(preds)
+                self.fp_due_to_extra_pred_boxes += len(preds)
+                continue
+
             preds = sorted(preds, key=lambda x: x[1], reverse=True)
+
+            # Iterate over predictions and ground truth boxes for each image
             for pred in preds:
-                pred_class_id, score, pred_xmin, pred_ymin, pred_xmax, pred_ymax = pred
-                pred_box = [pred_xmin, pred_ymin, pred_xmax, pred_ymax]
+                pred_class_id, pred_box = pred[0], pred[2:]  # [xmin, ymin, xmax, ymax]
 
                 best_iou = 0
                 best_gt_index = -1
+
+                # If all GT boxes for this image have been matched
+                # with a prediction bbox then all remaining predictions are FPs
+                if all(gt_used):
+                    self.fp += 1
+                    self.fp_due_to_extra_pred_boxes += 1
+                    continue
 
                 for gt_index, gt in enumerate(gts):
                     if gt_used[gt_index]:
                         continue
 
-                    gt_class_id, gt_xmin, gt_ymin, gt_xmax, gt_ymax = gt
-                    gt_box = [gt_xmin, gt_ymin, gt_xmax, gt_ymax]
+                    gt_class_id, gt_box = gt[0], gt[1:]
+                    current_iou = self.iou(pred_box, gt_box)
 
-                    if pred_class_id == gt_class_id:
-                        current_iou = self.iou(pred_box, gt_box)
-                        if current_iou >= best_iou:
-                            best_iou = current_iou
-                            best_gt_index = gt_index
+                    if current_iou >= best_iou:
+                        best_iou = current_iou
+                        best_gt_index = gt_index
 
-                if best_gt_index != -1:
-                    if best_iou >= iou_threshold:
-                        self.tp += 1
-                        gt_used[best_gt_index] = True
+                    if current_iou >= iou_threshold:
+                        if pred_class_id == gt_class_id:
+                            self.tp += 1  # TP
+                            gt_used[best_gt_index] = True
+                        else:
+                            self.fp += 1  # FP
+                            self.fp_due_to_wrong_class += 1
                     else:
                         self.fp += 1
                         self.fp_due_to_low_iou += 1
-                else:
-                    self.fp += 1
-                    if all(gt_used):
-                        self.fp_due_to_extra_pred_boxes += 1
-                    else:
-                        self.fp_due_to_wrong_class += 1
 
+            # Count unused GT boxes as FNs
             for gt_index, gt in enumerate(gts):
                 if not gt_used[gt_index]:
                     self.fn += 1
+
+    @staticmethod
+    def _is_empty(preds):
+        if len(preds) == 0:
+            return True
+        elif all([len(pred) == 0 for pred in preds]):
+            return True
+        else:
+            return False
 
     @staticmethod
     def iou(box1, box2):
