@@ -75,32 +75,30 @@ class DetectionConfusionMatrix(Metric):
                 continue
 
             # Count per image
-            gt_used = [False] * len(gts)
+            gt_boxes_used = [False] * len(gts)  # To keep track of all matched GT boxes
             preds = sorted(preds, key=lambda x: x[1], reverse=True)
-
-            # Iterate over predictions and ground truth boxes for each image
             for pred in preds:
-                pred_class_id, pred_box = pred[0], pred[2:]
-
-                best_same_class_iou = 0
-                best_same_class_gt_index = -1
-                best_diff_class_iou = 0
-                # best_diff_class_gt_index = -1
-
-                # If all GT boxes for this image have been matched
-                # with a prediction bbox then all remaining predictions are FPs
-                if all(gt_used):
+                # If all GT boxes for this image have been matched (TP)
+                # with corresponding pred boxes then all remaining pred boxes are FPs
+                if all(gt_boxes_used):
                     self.fp += 1
                     self.fp_due_to_extra_pred_boxes += 1
                     continue
 
+                # Otherwise, calculate IoU with all remaining GT boxes
+                pred_class_id, pred_box = pred[0], pred[2:]
+                best_same_class_iou = 0
+                best_same_class_gt_index = -1
+                best_diff_class_iou = 0
+
                 for gt_index, gt in enumerate(gts):
-                    if gt_used[gt_index]:
+                    if gt_boxes_used[gt_index]:  # Skip GT box if already used
                         continue
 
                     gt_class_id, gt_box = gt[0], gt[1:]
-                    current_iou = self.iou(pred_box, gt_box)
 
+                    # Calculate IoU and update best pred box IoU with same and different class GT boxes
+                    current_iou = self.iou(pred_box, gt_box)
                     if pred_class_id == gt_class_id:
                         if current_iou > best_same_class_iou:
                             best_same_class_iou = current_iou
@@ -108,17 +106,12 @@ class DetectionConfusionMatrix(Metric):
                     else:
                         if current_iou > best_diff_class_iou:
                             best_diff_class_iou = current_iou
-                            # best_diff_class_gt_index = gt_index
 
-                if all(gt_used):
-                    self.fp += 1
-                    self.fp_due_to_extra_pred_boxes += 1
-                    continue
-
-                if best_same_class_gt_index != -1:
+                # Update TP and FP counts
+                if best_same_class_gt_index != -1:  # GT box with same class found
                     if best_same_class_iou >= iou_threshold:
                         self.tp += 1
-                        gt_used[best_same_class_gt_index] = True
+                        gt_boxes_used[best_same_class_gt_index] = True  # Mark GT box as used
                     else:
                         self.fp += 1
                         self.fp_due_to_low_iou += 1
@@ -130,23 +123,9 @@ class DetectionConfusionMatrix(Metric):
                         self.fp += 1
                         self.fp_due_to_low_iou += 1
 
-                # if best_gt_index != -1:
-                #     if best_iou >= iou_threshold:
-                #         self.tp += 1
-                #         gt_used[best_gt_index] = True
-                #     else:
-                #         self.fp += 1
-                #         self.fp_due_to_low_iou += 1
-                # else:
-                #     self.fp += 1
-                #     if all(gt_used):
-                #         self.fp_due_to_extra_pred_boxes += 1
-                #     else:
-                #         self.fp_due_to_wrong_class += 1
-
             # Count unused GT boxes as FNs
             for gt_index, gt in enumerate(gts):
-                if not gt_used[gt_index]:
+                if not gt_boxes_used[gt_index]:
                     self.fn += 1
 
     @staticmethod

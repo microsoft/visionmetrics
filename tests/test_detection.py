@@ -404,34 +404,64 @@ class TestDetectionConfusionMatrix(unittest.TestCase):
         self.assertEqual(result['FP_due_to_low_iou'], 0)
         self.assertEqual(result['FP_due_to_extra_pred_boxes'], 1)
 
-    def two_images_one_wrong_class(self):
+    def test_two_images(self):
         predictions = [[[0, 1.0, 0, 0, 1, 1]], [[1, 1.0, 0, 0, 1, 1]]]
-        targets = [[[1, 0, 0, 1, 1]], [[1, 0, 0, 1, 1]]]
-
-        metric = DetectionConfusionMatrix(iou_threshold=0.5)
-        metric.update(predictions, targets)
-        result = metric.compute()
-
-        self.assertEqual(result['TP'], 1)
-        self.assertEqual(result['FP'], 1)
-        self.assertEqual(result['FN'], 1)
-        self.assertEqual(result['FP_due_to_wrong_class'], 1)
-        self.assertEqual(result['FP_due_to_low_iou'], 0)
-        self.assertEqual(result['FP_due_to_extra_pred_boxes'], 10)
-
-    def two_images_one_low_iou(self):
-        predictions = [[[0, 1.0, 0, 0, 1, 1]], [[1, 1.0, 0, 0, 0.5, 0.5]]]
         targets = [[[0, 0, 0, 1, 1]], [[1, 0, 0, 1, 1]]]
 
         metric = DetectionConfusionMatrix(iou_threshold=0.5)
         metric.update(predictions, targets)
         result = metric.compute()
 
-        self.assertEqual(result['TP'], 1)
+        self.assertEqual(result['TP'], 2)
+        self.assertEqual(result['FP'], 0)
+        self.assertEqual(result['FN'], 0)
+        self.assertEqual(result['FP_due_to_wrong_class'], 0)
+        self.assertEqual(result['FP_due_to_low_iou'], 0)
+        self.assertEqual(result['FP_due_to_extra_pred_boxes'], 0)
+
+    def test_two_images_wrong_class_low_iou(self):
+        predictions = [[[0, 1.0, 0, 0, 1, 1]], [[1, 1.0, 0, 0, 0.5, 0.5]]]
+        targets = [[[1, 0, 0, 1, 1]], [[1, 0, 0, 1, 1]]]
+
+        metric = DetectionConfusionMatrix(iou_threshold=0.5)
+        metric.update(predictions, targets)
+        result = metric.compute()
+
+        self.assertEqual(result['TP'], 0)
+        self.assertEqual(result['FP'], 2)
+        self.assertEqual(result['FN'], 2)
+        self.assertEqual(result['FP_due_to_wrong_class'], 1)
+        self.assertEqual(result['FP_due_to_low_iou'], 1)
+        self.assertEqual(result['FP_due_to_extra_pred_boxes'], 0)
+        
+    def test_two_images_extra_preds(self):
+        predictions = [[[0, 1.0, 0, 0, 1, 1], [1, 1.0, 0, 0, 1, 1]], [[1, 1.0, 0, 0, 1, 1]]]
+        targets = [[[0, 0, 0, 1, 1]], [[1, 0, 0, 1, 1]]]
+
+        metric = DetectionConfusionMatrix(iou_threshold=0.5)
+        metric.update(predictions, targets)
+        result = metric.compute()
+
+        self.assertEqual(result['TP'], 2)
         self.assertEqual(result['FP'], 1)
+        self.assertEqual(result['FN'], 0)
+        self.assertEqual(result['FP_due_to_wrong_class'], 0)
+        self.assertEqual(result['FP_due_to_low_iou'], 0)
+        self.assertEqual(result['FP_due_to_extra_pred_boxes'], 1)
+        
+    def test_two_images_extra_targets(self):
+        predictions = [[[0, 1.0, 0, 0, 1, 1]], [[1, 1.0, 0, 0, 1, 1]]]
+        targets = [[[0, 0, 0, 1, 1], [1, 0, 0, 1, 1]], [[1, 0, 0, 1, 1]]]
+
+        metric = DetectionConfusionMatrix(iou_threshold=0.5)
+        metric.update(predictions, targets)
+        result = metric.compute()
+
+        self.assertEqual(result['TP'], 2)
+        self.assertEqual(result['FP'], 0)
         self.assertEqual(result['FN'], 1)
         self.assertEqual(result['FP_due_to_wrong_class'], 0)
-        self.assertEqual(result['FP_due_to_low_iou'], 1)
+        self.assertEqual(result['FP_due_to_low_iou'], 0)
         self.assertEqual(result['FP_due_to_extra_pred_boxes'], 0)
 
 
