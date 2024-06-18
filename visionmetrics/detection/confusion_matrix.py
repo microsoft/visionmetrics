@@ -46,8 +46,8 @@ class DetectionConfusionMatrix(Metric):
     def update(self, predictions, targets):
         if len(predictions) != len(targets):
             raise ValueError("Number of predictions and targets should be the same.")
-        if not isinstance(predictions[0][0], list):
-            raise ValueError(f"Expected predictions to be a list of lists, got a list of {type(predictions[0][0])}")
+        if not isinstance(predictions[0], list):
+            raise ValueError(f"Expected predictions to be a list of lists, got a list of {type(predictions[0])}")
 
         self._update_confusion_matrix(predictions, targets, self.iou_threshold)
 
