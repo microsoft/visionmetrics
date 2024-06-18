@@ -1,10 +1,11 @@
 import torch
 from torchmetrics import Metric
+from typing import List
 
 
 class DetectionConfusionMatrix(Metric):
     """
-        Calcuates confusion matrix in the context of object detection.
+        Calculates confusion matrix in the context of object detection.
 
         Parameters
         ----------
@@ -43,15 +44,15 @@ class DetectionConfusionMatrix(Metric):
         self.add_state("fp_due_to_low_iou", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("fp_due_to_extra_pred_boxes", default=torch.tensor(0), dist_reduce_fx="sum")
 
-    def update(self, predictions, targets):
+    def update(self, predictions: List[List[List[float]]], targets: List[List[List[float]]]) -> None:
         if len(predictions) != len(targets):
             raise ValueError("Number of predictions and targets should be the same.")
-        if not isinstance(predictions[0][0], list):
-            raise ValueError(f"Expected predictions to be a list of lists, got a list of {type(predictions[0][0])}")
+        if not isinstance(predictions[0], list):
+            raise ValueError(f"Expected predictions to be a list of lists, got a list of {type(predictions[0])}")
 
         self._update_confusion_matrix(predictions, targets, self.iou_threshold)
 
-    def compute(self):
+    def compute(self) -> dict:
         return {
             'TP': self.tp.item(),
             'FP': self.fp.item(),
@@ -61,9 +62,8 @@ class DetectionConfusionMatrix(Metric):
             'FP_due_to_extra_pred_boxes': self.fp_due_to_extra_pred_boxes.item()
         }
 
-    def _update_confusion_matrix(self, predictions, targets, iou_threshold):
+    def _update_confusion_matrix(self, predictions: List[List[List[float]]], targets: List[List[List[float]]], iou_threshold: float) -> None:
         for preds, gts in zip(predictions, targets):
-
             # Check empty predictions and targets
             if self._is_empty(preds):
                 self.fn += len(gts)
@@ -77,13 +77,13 @@ class DetectionConfusionMatrix(Metric):
             # Count per image
             gt_boxes_used = [False] * len(gts)  # To keep track of all matched GT boxes
             preds = sorted(preds, key=lambda x: x[1], reverse=True)
-            for pred in preds:
+            for idx, pred in enumerate(preds):
                 # If all GT boxes for this image have been matched (TP)
                 # with corresponding pred boxes then all remaining pred boxes are FPs
                 if all(gt_boxes_used):
-                    self.fp += 1
-                    self.fp_due_to_extra_pred_boxes += 1
-                    continue
+                    self.fp += len(preds) - idx
+                    self.fp_due_to_extra_pred_boxes += len(preds) - idx
+                    break
 
                 # Otherwise, calculate IoU with all remaining GT boxes
                 pred_class_id, pred_box = pred[0], pred[2:]
@@ -129,11 +129,11 @@ class DetectionConfusionMatrix(Metric):
                     self.fn += 1
 
     @staticmethod
-    def _is_empty(pred_or_gt):
+    def _is_empty(pred_or_gt: List[List[float]]):
         return all([len(x) == 0 for x in pred_or_gt])
 
     @staticmethod
-    def iou(box1, box2):
+    def iou(box1: List[float], box2: List[float]) -> float:
         """
         Calculate the Intersection over Union (IoU) of two bounding boxes.
 
