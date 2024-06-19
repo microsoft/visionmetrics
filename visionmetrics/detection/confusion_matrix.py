@@ -7,31 +7,27 @@ class DetectionConfusionMatrix(Metric):
     """
         Calculates confusion matrix in the context of object detection.
 
-        Parameters
-        ----------
-        predictions : list of lists
-            Each list contains list of bounding box predictions for an image in the format [class_id, score, xmin, ymin, xmax, ymax]
-        targets : list of lists
-            Each list contains ground truth bounding boxes for an image in the format [class_id, xmin, ymin, xmax, ymax]
-        iou_threshold : float
-            IoU threshold to consider a detection as True Positive
+        update() method takes the following inputs:
+            predictions : list of lists
+                Each list contains list of bounding box predictions for an image in the format [class_id, score, xmin, ymin, xmax, ymax]
+            targets : list of lists
+                Each list contains ground truth bounding boxes for an image in the format [class_id, xmin, ymin, xmax, ymax]
 
-        Example:
-        predictions = [[[0, 0.9, 10, 20, 50, 100], [1, 0.8, 30, 40, 80, 120]], [[1, 0.7, 20, 30, 60, 90]]]
-        targets = [[[0, 10, 20, 50, 100], [1, 30, 40, 80, 120]], [[1, 20, 30, 60, 90]]]
+            Example:
+            predictions = [[[0, 0.9, 10, 20, 50, 100], [1, 0.8, 30, 40, 80, 120]], [[1, 0.7, 20, 30, 60, 90]]]
+            targets = [[[0, 10, 20, 50, 100], [1, 30, 40, 80, 120]], [[1, 20, 30, 60, 90]]]
 
-        Returns
-        -------
-        confusion_matrix : dict
-            Dictionary containing the counts of TP, FP, and FN, as well as details for FP reasons
+        compute() returns
+            confusion_matrix : dict
+                Dictionary containing the counts of TP, FP, and FN, as well as details for FP reasons
 
+        Definitions:
             TP: When a predicted bounding box has IoU greater than the threshold with a ground truth box of the same class
             FN: When a ground truth bounding box has no corresponding predicted bounding box
             FP:
                 1. FP_due_to_wrong_class: IOU >= threshold but predicted class is different from the ground truth class.
                 2. FP_due_to_low_iou: Predicted bbox IOU < threshold (including no overlap)
                 3. fp_due_to_extra_pred_boxes: Excess predicted bboxes when all ground truth boxes have been matched
-
         """
 
     def __init__(self, iou_threshold=0.5, **kwargs):
@@ -41,7 +37,8 @@ class DetectionConfusionMatrix(Metric):
         self.add_state("fp", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("fn", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("fp_due_to_wrong_class", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("fp_due_to_low_iou", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state("fp_due_to_low_iou_correct_class", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state("fp_due_to_low_iou_wrong_class", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("fp_due_to_extra_pred_boxes", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, predictions: List[List[List[float]]], targets: List[List[List[float]]]) -> None:
@@ -58,7 +55,8 @@ class DetectionConfusionMatrix(Metric):
             'FP': self.fp.item(),
             'FN': self.fn.item(),
             'FP_due_to_wrong_class': self.fp_due_to_wrong_class.item(),
-            'FP_due_to_low_iou': self.fp_due_to_low_iou.item(),
+            'FP_due_to_low_iou_correct_class': self.fp_due_to_low_iou_correct_class.item(),
+            'FP_due_to_low_iou_wrong_class': self.fp_due_to_low_iou_wrong_class.item(),
             'FP_due_to_extra_pred_boxes': self.fp_due_to_extra_pred_boxes.item()
         }
 
@@ -100,11 +98,11 @@ class DetectionConfusionMatrix(Metric):
                     # Calculate IoU and update best pred box IoU with same and different class GT boxes
                     current_iou = self.iou(pred_box, gt_box)
                     if pred_class_id == gt_class_id:
-                        if current_iou > best_same_class_iou:
+                        if current_iou >= best_same_class_iou:
                             best_same_class_iou = current_iou
                             best_same_class_gt_index = gt_index
                     else:
-                        if current_iou > best_diff_class_iou:
+                        if current_iou >= best_diff_class_iou:
                             best_diff_class_iou = current_iou
 
                 # Update TP and FP counts
@@ -114,14 +112,14 @@ class DetectionConfusionMatrix(Metric):
                         gt_boxes_used[best_same_class_gt_index] = True  # Mark GT box as used
                     else:
                         self.fp += 1
-                        self.fp_due_to_low_iou += 1
+                        self.fp_due_to_low_iou_correct_class += 1
                 else:
                     if best_diff_class_iou >= iou_threshold:
                         self.fp += 1
                         self.fp_due_to_wrong_class += 1
                     else:
                         self.fp += 1
-                        self.fp_due_to_low_iou += 1
+                        self.fp_due_to_low_iou_wrong_class += 1
 
             # Count unused GT boxes as FNs
             for gt_index, gt in enumerate(gts):
