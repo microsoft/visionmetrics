@@ -30,8 +30,8 @@ class DetectionConfusionMatrix(Metric):
                 3. fp_due_to_extra_pred_boxes: Excess predicted bboxes when all ground truth boxes have been matched
         """
 
-    def __init__(self, iou_threshold=0.5, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, iou_threshold=0.5):
+        super().__init__()
         self.iou_threshold = iou_threshold
         self.add_state("tp", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("fp", default=torch.tensor(0), dist_reduce_fx="sum")
