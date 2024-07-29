@@ -78,7 +78,7 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
             score = float(raw_score)
         except ValueError:
             self.score_parse_failures += 1
-            logger.debug(f"Failed to parse raw_score {raw_score} to numeric value; returning 0.")
+            logger.debug(f"Failed to parse raw_score \"{raw_score}\" to numeric value; returning 0.")
         return score
 
     def update(self, predictions, targets):
@@ -100,8 +100,10 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
             final_target = OR_SEPARATOR.join(target)
             prompt = prompt.replace(TARGET_PLACEHOLDER, final_target)
             
-            result = ["1.0"] if prediction == target else self.model(([prompt], [[]]))
-            result = result[0] if result else ""
+            if prediction == target:
+                result = "1.0"
+            else:
+                result = self.model(([prompt], [[]]))[0]
             if self.num_responses == 1:
                 self.raw_scores.append(result)
                 numeric_score = self._get_numeric_score(result)
