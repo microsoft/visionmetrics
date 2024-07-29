@@ -1,6 +1,7 @@
 import json
 import pathlib
 import unittest
+from irisml.tasks.create_azure_openai_chat_model import OpenAITextChatModel
 
 from visionmetrics.caption import BleuScore, CIDErScore, METEORScore, ROUGELScore
 from visionmetrics.caption.azure_openai_model_eval import AzureOpenAITextModelCategoricalScore
@@ -95,37 +96,44 @@ class TestAzureOpenAITextModelCategoricalEvaluator(unittest.TestCase):
     }
 
     def test_azure_openai_text_model_categorical_evaluator(self):
-        evaluator = AzureOpenAITextModelCategoricalScore()
+        evaluator = AzureOpenAITextModelCategoricalScore(endpoint="https://endpoint-name.openai.azure.com/", deployment_name="gpt-4o")
         # Update with each test case and check intermediate states for correctness, followed by overall metrics.
         # Uses a small number of test cases to avoid sending too many calls to the Azure OpenAI endpoint.
-        evaluator.update(predictions=self.tp_exact_match_testcase["predictions"], targets=self.tp_exact_match_testcase["targets"])
-        self.assertEqual(evaluator.raw_scores[-1], "1.0")
-        self.assertEqual(evaluator.scores[-1], 1.0)
-        self.assertEqual(evaluator.score_parse_failures.item(), 0)
-        self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.TruePositive)
 
-        evaluator.update(predictions=self.tp_semantic_match_testcase["predictions"], targets=self.tp_semantic_match_testcase["targets"])
-        self.assertGreater(evaluator.scores[-1], evaluator.positive_threshold)
-        self.assertEqual(evaluator.score_parse_failures.item(), 0)
-        self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.TruePositive)
+        with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["1.0"]):
+            evaluator.update(predictions=self.tp_exact_match_testcase["predictions"], targets=self.tp_exact_match_testcase["targets"])
+            self.assertEqual(evaluator.raw_scores[-1], "1.0")
+            self.assertEqual(evaluator.scores[-1], 1.0)
+            self.assertEqual(evaluator.score_parse_failures.item(), 0)
+            self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.TruePositive)
 
-        evaluator.update(predictions=self.tn_testcase["predictions"], targets=self.tn_testcase["targets"])
-        self.assertEqual(evaluator.raw_scores[-1], "1.0")
-        self.assertEqual(evaluator.scores[-1], 1.0)
-        self.assertEqual(evaluator.score_parse_failures.item(), 0)
-        self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.TrueNegative)
+        with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["0.9"]):
+            evaluator.update(predictions=self.tp_semantic_match_testcase["predictions"], targets=self.tp_semantic_match_testcase["targets"])
+            self.assertGreater(evaluator.scores[-1], evaluator.positive_threshold)
+            self.assertEqual(evaluator.score_parse_failures.item(), 0)
+            self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.TruePositive)
 
-        evaluator.update(predictions=self.fn_testcase["predictions"], targets=self.fn_testcase["targets"])
-        self.assertLess(evaluator.scores[-1], evaluator.positive_threshold)
-        self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.FalseNegative)
+        with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["1.0"]):
+            evaluator.update(predictions=self.tn_testcase["predictions"], targets=self.tn_testcase["targets"])
+            self.assertEqual(evaluator.raw_scores[-1], "1.0")
+            self.assertEqual(evaluator.scores[-1], 1.0)
+            self.assertEqual(evaluator.score_parse_failures.item(), 0)
+            self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.TrueNegative)
 
-        evaluator.update(predictions=self.fp_gt_null_testcase["predictions"], targets=self.fp_gt_null_testcase["targets"])
-        self.assertLess(evaluator.scores[-1], evaluator.positive_threshold)
-        self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.FalsePositiveGtNull)
+        with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["0.0"]):
+            evaluator.update(predictions=self.fn_testcase["predictions"], targets=self.fn_testcase["targets"])
+            self.assertLess(evaluator.scores[-1], evaluator.positive_threshold)
+            self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.FalseNegative)
 
-        evaluator.update(predictions=self.fp_gt_not_null_testcase["predictions"], targets=self.fp_gt_not_null_testcase["targets"])
-        self.assertLess(evaluator.scores[-1], evaluator.positive_threshold)
-        self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.FalsePositiveGtNotNull)
+        with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["0.0"]):
+            evaluator.update(predictions=self.fp_gt_null_testcase["predictions"], targets=self.fp_gt_null_testcase["targets"])
+            self.assertLess(evaluator.scores[-1], evaluator.positive_threshold)
+            self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.FalsePositiveGtNull)
+
+        with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["0.0"]):
+            evaluator.update(predictions=self.fp_gt_not_null_testcase["predictions"], targets=self.fp_gt_not_null_testcase["targets"])
+            self.assertLess(evaluator.scores[-1], evaluator.positive_threshold)
+            self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.FalsePositiveGtNotNull)
 
         report = evaluator.compute()
         self.assertAlmostEqual(report["Precision"], self.expected_report["Precision"])

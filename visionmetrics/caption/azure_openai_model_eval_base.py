@@ -2,7 +2,10 @@ import torch
 from collections import Counter
 from enum import Enum
 from irisml.tasks.create_azure_openai_chat_model import OpenAITextChatModel
+import logging
 from torchmetrics import Metric
+
+logger = logging.getLogger(__name__)
 
 
 # Prompt template placeholder constants
@@ -25,7 +28,7 @@ class ResultStatusType(Enum):
     FalsePositiveGtNull = 5  
 
 
-class AzureOpenAITextModelCategoricalEvalBase(Metric):
+class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
     """
     Evaluator that uses single-turn text-only calls to an Azure OpenAI model for evaluation and returns
     standard categorical metrics (precision, recall, F1, accuracy) based on the scores returned.
@@ -46,12 +49,13 @@ class AzureOpenAITextModelCategoricalEvalBase(Metric):
             raise ValueError("Both the predicted placeholder {PREDICTION_PLACEHOLDER} and target placeholder {TARGET_PLACEHOLDER} must be present in prompt_template.")
         if positive_threshold < 0.0 or positive_threshold > 1.0:
             raise ValueError("Parameter positive_threshold should be between [0.0, 1.0], inclusive.")
-        self.prompt_template = prompt_template
+        logger.info(f"Initializing evaluator with positive_threshold={positive_threshold}, negative_value={negative_value}, temperature={temperature}, max_tokens={max_tokens}, system_message=\"{system_message}\", prompt_template=\"{prompt_template}\"")
         self.system_message = system_message
+        self.prompt_template = prompt_template
         self.positive_threshold = positive_threshold
         self.negative_value = negative_value
 
-        if num_responses > 1:
+        if num_responses != 1:
             raise NotImplementedError("This metric currently only supports single-response scoring.")
         self.num_responses = num_responses
 
@@ -74,6 +78,7 @@ class AzureOpenAITextModelCategoricalEvalBase(Metric):
             score = float(raw_score)
         except ValueError:
             self.score_parse_failures += 1
+            logger.debug(f"Failed to parse raw_score {raw_score} to numeric value; returning 0.")
         return score
 
     def update(self, predictions, targets):
@@ -95,11 +100,8 @@ class AzureOpenAITextModelCategoricalEvalBase(Metric):
             final_target = OR_SEPARATOR.join(target)
             prompt = prompt.replace(TARGET_PLACEHOLDER, final_target)
             
-            try:
-                result = ["1.0"] if prediction == target else self.model.forward(([prompt], [[]]))
-                result = result[0] if result else ''
-            except:
-                result = '0.0'
+            result = ["1.0"] if prediction == target else self.model(([prompt], [[]]))
+            result = result[0] if result else ""
             if self.num_responses == 1:
                 self.raw_scores.append(result)
                 numeric_score = self._get_numeric_score(result)
@@ -142,8 +144,14 @@ class AzureOpenAITextModelCategoricalEvalBase(Metric):
             f1 = (2 * precision * recall) / (precision + recall)
         except ZeroDivisionError:
             f1 = 0
-        accuracy = tp + tn / (tp + tn + fn + fp_gt_null + fp_gt_not_null)
-        average_score = sum(self.scores) / len(self.scores)
+        try:
+            accuracy = tp + tn / (tp + tn + fn + fp_gt_null + fp_gt_not_null)
+        except ZeroDivisionError:
+            accuracy = 0.
+        try:
+            average_score = sum(self.scores) / len(self.scores)
+        except:
+            average_score = 0.
         return {
             # Summary statistics
             "Precision": precision,
