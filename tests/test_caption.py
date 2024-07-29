@@ -96,9 +96,8 @@ class TestAzureOpenAITextModelCategoricalEvaluator(unittest.TestCase):
     }
 
     def test_azure_openai_text_model_categorical_evaluator(self):
-        evaluator = AzureOpenAITextModelCategoricalScore(endpoint="https://endpoint-name.openai.azure.com/", deployment_name="gpt-4o")
         # Update with each test case and check intermediate states for correctness, followed by overall metrics.
-        # Uses a small number of test cases to avoid sending too many calls to the Azure OpenAI endpoint.
+        evaluator = AzureOpenAITextModelCategoricalScore(endpoint="https://endpoint-name.openai.azure.com/", deployment_name="gpt-4o")
 
         with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["1.0"]):
             evaluator.update(predictions=self.tp_exact_match_testcase["predictions"], targets=self.tp_exact_match_testcase["targets"])
