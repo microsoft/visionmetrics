@@ -25,7 +25,7 @@ class ResultStatusType(Enum):
     TrueNegative = 2
     FalseNegative = 3
     FalsePositiveGtNotNull = 4
-    FalsePositiveGtNull = 5  
+    FalsePositiveGtNull = 5
 
 
 class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
@@ -49,7 +49,8 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
             raise ValueError("Both the predicted placeholder {PREDICTION_PLACEHOLDER} and target placeholder {TARGET_PLACEHOLDER} must be present in prompt_template.")
         if positive_threshold < 0.0 or positive_threshold > 1.0:
             raise ValueError("Parameter positive_threshold should be between [0.0, 1.0], inclusive.")
-        logger.info(f"Initializing evaluator with positive_threshold={positive_threshold}, negative_value={negative_value}, temperature={temperature}, max_tokens={max_tokens}, system_message=\"{system_message}\", prompt_template=\"{prompt_template}\"")
+        logger.info(f"Initializing evaluator with positive_threshold={positive_threshold}, negative_value={negative_value}, temperature={temperature}, max_tokens={max_tokens}, "
+                    "system_message=\"{system_message}\", prompt_template=\"{prompt_template}\"")
         self.system_message = system_message
         self.prompt_template = prompt_template
         self.positive_threshold = positive_threshold
@@ -61,7 +62,7 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
 
         self.model = OpenAITextChatModel(endpoint=endpoint, deployment_name=deployment_name, api_key=None, temperature=temperature, max_tokens=max_tokens,
                                          requests_inverval=requests_interval, num_responses=num_responses, delimiter=MULTIPLE_RESPONSES_DELIMITER, system_message=system_message)
-        
+
         self.add_state("predictions", default=[], dist_reduce_fx="cat")
         self.add_state("targets", default=[], dist_reduce_fx="cat")
         self.add_state("raw_scores", default=[], dist_reduce_fx="cat")
@@ -91,15 +92,15 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
         """
         if len(predictions) != len(targets):
             raise ValueError("Please update with an equal number of predictions and targets.")
-        
+
         self.predictions += predictions
         self.targets += targets
-        
+
         for prediction, target in zip(predictions, targets):
             prompt = self.prompt_template.replace(PREDICTION_PLACEHOLDER, prediction)
             final_target = OR_SEPARATOR.join(target)
             prompt = prompt.replace(TARGET_PLACEHOLDER, final_target)
-            
+
             if prediction == target:
                 result = "1.0"
             else:
@@ -130,10 +131,10 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
     def compute(self):
         result_counts = Counter(self.result_status_types)
         tp, tn, fn, fp_gt_null, fp_gt_not_null = result_counts[ResultStatusType.TruePositive], \
-                                                 result_counts[ResultStatusType.TrueNegative], \
-                                                 result_counts[ResultStatusType.FalseNegative], \
-                                                 result_counts[ResultStatusType.FalsePositiveGtNull], \
-                                                 result_counts[ResultStatusType.FalsePositiveGtNotNull]
+            result_counts[ResultStatusType.TrueNegative], \
+            result_counts[ResultStatusType.FalseNegative], \
+            result_counts[ResultStatusType.FalsePositiveGtNull], \
+            result_counts[ResultStatusType.FalsePositiveGtNotNull]
         try:
             precision = tp / (tp + fp_gt_null + fp_gt_not_null)
         except ZeroDivisionError:
@@ -152,7 +153,7 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
             accuracy = 0.
         try:
             average_score = sum(self.scores) / len(self.scores)
-        except:
+        except ZeroDivisionError:
             average_score = 0.
         return {
             # Summary statistics
