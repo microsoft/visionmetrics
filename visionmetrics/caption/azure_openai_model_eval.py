@@ -54,7 +54,8 @@ class AzureOpenAITextModelCategoricalScore(AzureOpenAITextModelCategoricalEvalua
         Other parameters follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel.
     """
 
-    def __init__(self, endpoint: str, deployment_name: str, system_message=DEFAULT_SYSTEM_MESSAGE, prompt_template=DEFAULT_PROMPT_TEMPLATE, temperature=0.0, max_tokens=50, positive_threshold=0.5, negative_value=''):
+    def __init__(self, endpoint: str, deployment_name: str, system_message=DEFAULT_SYSTEM_MESSAGE, prompt_template=DEFAULT_PROMPT_TEMPLATE,
+                 temperature=0.0, max_tokens=50, positive_threshold=0.5, negative_value=''):
         super().__init__(endpoint=endpoint,
                          deployment_name=deployment_name,
                          system_message=system_message,
