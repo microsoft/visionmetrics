@@ -31,6 +31,7 @@ The above metrics are available for Binary, Multiclass, and Multilabel classific
   - `ROUGELScore`: computes the Rouge-L score. Refer to [ROUGE: A Package for Automatic Evaluation of Summaries](http://anthology.aclweb.org/W/W04/W04-1013.pdf) for more details.
   - `CIDErScore`:  computes the CIDEr score. Refer to [CIDEr: Consensus-based Image Description Evaluation](http://arxiv.org/pdf/1411.5726.pdf) for more details.
   - `SPICEScore`:  computes the SPICE score. Refer to [SPICE: Semantic Propositional Image Caption Evaluation](https://arxiv.org/abs/1607.08822) for more details.
+  - `AzureOpenAITextModelCategoricalScore`: computes a standard set of precision, recall, F1, and accuracy scores, and an average model score, based on scores generated from a specified prompt to an Azure OpenAI model.
 
 ### Image Matting:
   - `MeanIOU`: computes the mean intersection-over-union score. 

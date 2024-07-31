@@ -1,8 +1,11 @@
 import json
 import pathlib
 import unittest
+from irisml.tasks.create_azure_openai_chat_model import OpenAITextChatModel
 
 from visionmetrics.caption import BleuScore, CIDErScore, METEORScore, ROUGELScore
+from visionmetrics.caption.azure_openai_model_eval import AzureOpenAITextModelCategoricalScore
+from visionmetrics.caption.azure_openai_model_eval_base import ResultStatusType
 
 
 class TestImageCaptionEvaluator(unittest.TestCase):
@@ -23,7 +26,7 @@ class TestImageCaptionEvaluator(unittest.TestCase):
         imcap_predictions.append(value)
         imcap_targets.append(gts_by_id[key])
 
-    def test_image_caption_blue_score_evaluator(self):
+    def test_image_caption_bleu_score_evaluator(self):
         evaluator = BleuScore()
         evaluator.update(predictions=self.imcap_predictions, targets=self.imcap_targets)
         report = evaluator.compute()
@@ -49,3 +52,95 @@ class TestImageCaptionEvaluator(unittest.TestCase):
         evaluator.update(predictions=self.imcap_predictions, targets=self.imcap_targets)
         report = evaluator.compute()
         self.assertAlmostEqual(report["CIDEr"], 1.2346054374217474)
+
+
+class TestAzureOpenAITextModelCategoricalEvaluator(unittest.TestCase):
+    tp_exact_match_testcase = {
+        "predictions": ["This is an image of a dog."],
+        "targets": [["This is an image of a dog."]]
+    }
+    tp_semantic_match_testcase = {
+        "predictions": ["In this image, there is a dog."],
+        "targets": [["This is an image of a dog."]]
+    }
+    tn_testcase = {
+        "predictions": [""],
+        "targets": [""]
+    }
+    fn_testcase = {
+        "predictions": [""],
+        "targets": [["This is an image of a dog."]]
+    }
+    fp_gt_null_testcase = {
+        "predictions": ["In this image, there is a dog."],
+        "targets": [[""]]
+    }
+    fp_gt_not_null_testcase = {
+        "predictions": ["In this image, there is a dog."],
+        "targets": [["There is a cat on a bench."]]
+    }
+
+    # Since AverageScore and ScoreParseFailures are not deterministic, omitting these from the testcase
+    expected_report = {
+        # Summary statistics
+        "Precision": 0.5,
+        "Recall": 0.5,
+        "F1": 0.5,
+        "Accuracy": 2.1666666666666665,
+        # Raw statistic counts
+        "TP": 2,
+        "TN": 1,
+        "FN": 1,
+        "FP_GTNull": 1,
+        "FP_GTNotNull": 1
+    }
+
+    def test_azure_openai_text_model_categorical_evaluator(self):
+        # Update with each test case and check intermediate states for correctness, followed by overall metrics.
+        evaluator = AzureOpenAITextModelCategoricalScore(endpoint="https://endpoint-name.openai.azure.com/", deployment_name="gpt-4o")
+
+        with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["1.0"]):
+            evaluator.update(predictions=self.tp_exact_match_testcase["predictions"], targets=self.tp_exact_match_testcase["targets"])
+            self.assertEqual(evaluator.raw_scores[-1], "1.0")
+            self.assertEqual(evaluator.scores[-1], 1.0)
+            self.assertEqual(evaluator.score_parse_failures.item(), 0)
+            self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.TruePositive)
+
+        with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["0.9"]):
+            evaluator.update(predictions=self.tp_semantic_match_testcase["predictions"], targets=self.tp_semantic_match_testcase["targets"])
+            self.assertGreater(evaluator.scores[-1], evaluator.positive_threshold)
+            self.assertEqual(evaluator.score_parse_failures.item(), 0)
+            self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.TruePositive)
+
+        with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["1.0"]):
+            evaluator.update(predictions=self.tn_testcase["predictions"], targets=self.tn_testcase["targets"])
+            self.assertEqual(evaluator.raw_scores[-1], "1.0")
+            self.assertEqual(evaluator.scores[-1], 1.0)
+            self.assertEqual(evaluator.score_parse_failures.item(), 0)
+            self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.TrueNegative)
+
+        with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["0.0"]):
+            evaluator.update(predictions=self.fn_testcase["predictions"], targets=self.fn_testcase["targets"])
+            self.assertLess(evaluator.scores[-1], evaluator.positive_threshold)
+            self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.FalseNegative)
+
+        with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["0.0"]):
+            evaluator.update(predictions=self.fp_gt_null_testcase["predictions"], targets=self.fp_gt_null_testcase["targets"])
+            self.assertLess(evaluator.scores[-1], evaluator.positive_threshold)
+            self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.FalsePositiveGtNull)
+
+        with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["0.0"]):
+            evaluator.update(predictions=self.fp_gt_not_null_testcase["predictions"], targets=self.fp_gt_not_null_testcase["targets"])
+            self.assertLess(evaluator.scores[-1], evaluator.positive_threshold)
+            self.assertEqual(evaluator.result_status_types[-1], ResultStatusType.FalsePositiveGtNotNull)
+
+        report = evaluator.compute()
+        self.assertAlmostEqual(report["Precision"], self.expected_report["Precision"])
+        self.assertAlmostEqual(report["Recall"], self.expected_report["Recall"])
+        self.assertAlmostEqual(report["F1"], self.expected_report["F1"])
+        self.assertAlmostEqual(report["Accuracy"], self.expected_report["Accuracy"])
+        self.assertEqual(report["TP"], self.expected_report["TP"])
+        self.assertEqual(report["TN"], self.expected_report["TN"])
+        self.assertEqual(report["FN"], self.expected_report["FN"])
+        self.assertEqual(report["FP_GTNull"], self.expected_report["FP_GTNull"])
+        self.assertEqual(report["FP_GTNotNull"], self.expected_report["FP_GTNotNull"])
