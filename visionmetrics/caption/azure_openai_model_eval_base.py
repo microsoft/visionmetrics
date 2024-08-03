@@ -17,6 +17,7 @@ MULTIPLE_RESPONSES_DELIMITER = "<|delimiter|>"
 
 # Evaluator separator constants for joining multiple ground truth values
 OR_SEPARATOR = " <|OR|> "
+AND_SEPARATOR = " <|AND|> "
 
 
 # Enum for per-value result status type
@@ -82,8 +83,9 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
             logger.debug(f"Failed to parse raw_score \"{raw_score}\" to numeric value; returning 0.")
         return score
 
-    def update(self, predictions, targets):
-        """ Evaluate list of predicted results using OpenAI text model.
+    def update(self, predictions, targets, multi_target_separator=AND_SEPARATOR):
+        """
+        Evaluate list of predicted results using Azure OpenAI text model.
         Args:
             predictions: list of string predictions [text1, text2, ...], shape: (N, ), type: string
             targets: list of one or more string ground truth values: [[gt1, gt2, ...], [gt1, gt2, ...], ...], type: string
@@ -98,7 +100,7 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
 
         for prediction, target in zip(predictions, targets):
             prompt = self.prompt_template.replace(PREDICTION_PLACEHOLDER, prediction)
-            final_target = OR_SEPARATOR.join(target)
+            final_target = multi_target_separator.join(target)
             prompt = prompt.replace(TARGET_PLACEHOLDER, final_target)
 
             if prediction == target:
