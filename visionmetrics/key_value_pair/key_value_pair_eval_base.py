@@ -71,18 +71,17 @@ class KeyValuePairEvaluatorBase(Metric):
                     key_prediction = prediction[key]
                 except KeyError:
                     logger.debug(f"No prediction exists in this sample for key '{key}'.")
+                    continue
                 try:
                     key_target = target[key]
                 except KeyError:
                     logger.debug(f"No target exists in this sample for key '{key}'.")
-                if (key_prediction and not key_target) or (not key_prediction and key_target):
-                    raise ValueError(f"Prediction and target for this sample have different keys; key '{key}' is present in one, but not the other.")
+                    continue
 
                 # Construct expected evaluation metric update format for the current key
                 try:
                     preprocessor = self.key_metric_map[key]["preprocessor"]
-                    key_prediction_formatted = preprocessor(key_prediction)
-                    key_target_formatted = preprocessor(key_target)
+                    key_prediction_formatted, key_target_formatted = preprocessor(key_prediction, key_target)
                     key_predictions.append(key_prediction_formatted)
                     key_targets.append(key_target_formatted)
                 except KeyError:
@@ -90,24 +89,29 @@ class KeyValuePairEvaluatorBase(Metric):
                         logger.debug(f"Skipping prediction and target for key '{key}' since the key does not have a preprocessor, but either prediction or target is not a dictionary. "
                                      "This means they do not have potential subkeys to be evaluated either.")
                         continue
-                    subkey_full_name = f"{key}_{subkey}"
                     try:
                         preprocessor = self.key_metric_map[subkey_full_name]["preprocessor"]
                     except KeyError:
                         logger.debug(f"Skipping prediction '{key_prediction}' and target '{key_target}' for key '{key}' -> subkey '{subkey}' since preprocessor does not exist.")
                         continue
+                    # TODO: This is wrong, we need to recursively update metrics for subkeys in a subroutine
                     for subkey in key_prediction:
+                        subkey_full_name = f"{key}_{subkey}"
                         try:
-                            key_prediction_formatted = preprocessor(key_prediction[subkey])
+                            key_prediction_formatted, key_target_formatted = preprocessor(key_prediction[subkey], key_target[subkey])
                             key_predictions.append(key_prediction_formatted)
+                            key_targets.append(key_target_formatted)
                         except KeyError:
-                            logger.debug(f"Skipping prediction '{key_prediction}' for key '{key}' -> subkey '{subkey}' since predicted value does not exist.")
+                            logger.debug(f"Skipping prediction '{key_prediction}' for key '{key}' -> subkey '{subkey}' since either predicted or target value does not exist.")
+                            continue
                     for subkey in key_target:
+                        subkey_full_name = f"{key}_{subkey}"
                         try:
                             key_target_formatted = preprocessor(key_target[subkey])
                             key_targets.append(key_target_formatted)
                         except KeyError:
                             logger.debug(f"Skipping target '{key_target}' for key '{key}' -> subkey '{subkey}' since target value does not exist.")
+                            continue
                 except ValueError as e:
                     logger.debug(f"Encountered error {repr(e)} when preprocessing prediction '{key_prediction}' and target '{key_target}' for key '{key}' to the metric's expected format.")
 
@@ -119,6 +123,7 @@ class KeyValuePairEvaluatorBase(Metric):
                 key_targets = torch.tensor(key_targets)
 
             try:
+                print(metric)
                 metric.update(key_predictions, key_targets)
             except Exception as e:
                 raise ValueError(f"Encountered error '{repr(e)}' when updating metric '{self.key_metric_map[key]['metric_name']}' for key '{key}'.")

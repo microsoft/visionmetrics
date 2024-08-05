@@ -132,7 +132,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                                                        metric_args={"num_classes": len(class_map), "average": "micro"},
                                                        class_map=class_map)
             case JSONSchemaKeyType.Boolean:
-                class_map = self._get_enum_class_map(["true", "false"])
+                class_map = self._get_enum_class_map([True, False])
                 self._assign_key_metric_map_values(key=key,
                                                    metric_name=SupportedKeyWiseMetric.Classification_MulticlassAccuracy,
                                                    metric_args={"num_classes": len(class_map), "average": "micro"},
@@ -182,14 +182,15 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             case SupportedKeyWiseMetric.Classification_MulticlassAccuracy | SupportedKeyWiseMetric.Classification_MulticlassF1:
                 # Expects torch int or float tensor of shape (N, ...) or (N, C, ...) for predictions, torch tensor of shape (N, ...) for targets
                 class_map = self.key_metric_map[key]["class_map"]
-                self.key_metric_map[key]["preprocessor"] = lambda pred, gt: (class_map.get(pred, OUT_OF_DISTRIBUTION_ENUM_KEY), class_map(gt, OUT_OF_DISTRIBUTION_ENUM_KEY))
+                self.key_metric_map[key]["preprocessor"] = lambda pred, gt: (class_map.get(str(pred), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)),
+                                                                             class_map.get(str(gt), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)))
             case SupportedKeyWiseMetric.Classification_MultilabelAccuracy | SupportedKeyWiseMetric.Classification_MultilabelF1:
                 # Expects torch int or float tensor of shape (N, C, ...)
                 class_map = self.key_metric_map[key]["class_map"]
                 def multilabel_preprocess(pred, gt):
-                    class_indices_pred = [class_map.get(p, OUT_OF_DISTRIBUTION_ENUM_KEY) for p in pred]
+                    class_indices_pred = [class_map.get(p, class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for p in pred]
                     one_hot_pred = [1 if class_index in class_indices_pred else 0 for class_index in range(0, len(class_map))]
-                    class_indices_gt = [class_map.get(g, OUT_OF_DISTRIBUTION_ENUM_KEY) for g in gt]
+                    class_indices_gt = [class_map.get(g, class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for g in gt]
                     one_hot_gt = [1 if class_index in class_indices_gt else 0 for class_index in range(0, len(class_map))]
                     return (one_hot_pred, one_hot_gt)
                 self.key_metric_map[key]["preprocessor"] = multilabel_preprocess
