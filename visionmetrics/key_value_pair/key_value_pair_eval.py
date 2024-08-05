@@ -5,6 +5,7 @@ from visionmetrics.key_value_pair.key_value_pair_eval_base import KeyValuePairEv
 
 OUT_OF_DISTRIBUTION_ENUM_KEY = "other"
 
+
 class JSONSchemaKeyType(str, Enum):
     String = "string"
     Number = "number"
@@ -13,6 +14,7 @@ class JSONSchemaKeyType(str, Enum):
     BoundingBox = "bbox"
     Array = "array"
     Object = "object"
+
 
 SIMPLE_KEY_TYPES = [JSONSchemaKeyType.String, JSONSchemaKeyType.Number, JSONSchemaKeyType.Integer, JSONSchemaKeyType.Boolean, JSONSchemaKeyType.BoundingBox]
 
@@ -52,6 +54,8 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                 }
             }
         }
+        Note: In the above example, both "defects" and "rationale" would be evaluated as text. We currently do not support non-text evaluation for arrays with complex item types.
+
         endpoint: string of the Azure OpenAI endpoint to be used as the default text evaluator.
         deployment_name: string of the Azure OpenAI deployment name to be used for the default text evaluator.
         The latter two arguments follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel.
@@ -67,7 +71,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         self.key_metric_map = {}
         for key in key_value_pair_schema:
             key_schema = key_value_pair_schema[key]
-            self._populate_key_metric_map(key=key, key_schema=key_schema)
+            self._populate_key_metric_map(key=key, key_schema=key_schema, key_trace=[key])
 
         super().__init__(key_metric_map=self.key_metric_map)
 
@@ -82,7 +86,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         # Reserve one class to catch cases where predictions are not in the set of expected classes
         class_map[OUT_OF_DISTRIBUTION_ENUM_KEY] = len(class_map)
         return class_map
-    
+
     def _assign_key_metric_map_values(self, key: str, metric_name: str, metric_args: dict, class_map: dict = None):
         """
         Assigns values for the metric_name, metric_args, and class_map for a given key in the object-level key_metric_map dictionary.
@@ -99,8 +103,8 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         self.key_metric_map[key]["metric_args"] = metric_args
         if class_map:
             self.key_metric_map[key]["class_map"] = class_map
-    
-    def _populate_key_metric_map(self, key: str, key_schema: dict):
+
+    def _populate_key_metric_map(self, key: str, key_schema: dict, key_trace: list[str]):
         """
         Recursive function that populates the object-level key_metric_map dictionary. For a given key and key_schema in JSON Schema format,
         the function populates the metric_name, metric_args, and preprocessor values in the dictionary.
@@ -108,6 +112,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         Args:
             key: string of the key name, which should be identical to the key that will be evaluated in the prediction and target dictionaries.
             key_schema: dictionary in JSON schema format specifying the expected schema for the prediction and target dictionaries to be used in evaluation.
+            key_trace: list of strings of key names that traces the path to the current key in the key-value pair prediction/target object (not in the schema).
         """
         # Use text as the default metric for all keys
         self._assign_key_metric_map_values(key=key,
@@ -160,12 +165,13 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                                                                metric_args={"num_labels": len(class_map), "average": "micro"},
                                                                class_map=class_map)
             case JSONSchemaKeyType.Object:
-                del self.key_metric_map[key]
-                for subkey in self.key_metric_map[key]["properties"]:
+                for subkey in key_schema["properties"]:
                     subkey_name = f"{key}_{subkey}"
-                    self._populate_key_metric_map(key=subkey_name, key_schema=key_schema["properties"][subkey])
+                    self._populate_key_metric_map(key=subkey_name, key_schema=key_schema["properties"][subkey], key_trace=key_trace + [subkey])
+                del self.key_metric_map[key]
         if key in self.key_metric_map:
             self._populate_key_preprocessor(key=key, type=key_schema["type"])
+            self.key_metric_map[key]["key_trace"] = key_trace
 
     def _populate_key_preprocessor(self, key: str, type: JSONSchemaKeyType):
         """
@@ -187,6 +193,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             case SupportedKeyWiseMetric.Classification_MultilabelAccuracy | SupportedKeyWiseMetric.Classification_MultilabelF1:
                 # Expects torch int or float tensor of shape (N, C, ...)
                 class_map = self.key_metric_map[key]["class_map"]
+
                 def multilabel_preprocess(pred, gt):
                     class_indices_pred = [class_map.get(p, class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for p in pred]
                     one_hot_pred = [1 if class_index in class_indices_pred else 0 for class_index in range(0, len(class_map))]

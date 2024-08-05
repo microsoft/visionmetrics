@@ -1,10 +1,12 @@
 from enum import Enum
+from functools import reduce
 import logging
+import operator
 import torch
 from torchmetrics import Metric
 
-# Import relevant visionmetrics modules; even though they appear to be unused, they are needed for dynamic metric instantiation at runtime.
-from visionmetrics import caption, classification, detection, grounding, regression
+# Import relevant visionmetrics modules; even though they appear to be unused to flake8, they are needed for dynamic metric instantiation at runtime.
+from visionmetrics import caption, classification, detection, grounding, regression  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ class KeyValuePairEvaluatorBase(Metric):
         1. metric_name: string of the metric name as defined in visionmetrics (e.g., 'classification.MulticlassAccuracy'), which should be among the ones specified in SupportedKeyWiseMetric.
         2. metric_args: dictionary of args to pass in as keyword arguments to the initialization function of the metric.
         3. preprocessor: function object that can be called with (prediction, target) values for a single instance to preprocess them into the desired format for the corresponding metric.
+        4. key_trace: list of strings of key names that traces the path to the current key in the key-value pair prediction/target object (not in the schema).
     """
     def __init__(self, key_metric_map: dict):
         super().__init__()
@@ -47,7 +50,8 @@ class KeyValuePairEvaluatorBase(Metric):
                 raise ValueError(f"Each value in key_metric_map must be a dictionary with a 'metric_name' key for a supported metric in visionmetrics of the form <task_name>.<metric_name>"
                                  f" and a 'metric_args' key for a dictionary of arguments to pass to the initialization function of that metric. Key '{key}' does not satisfy this rule.")
             if metric_name not in [m.value for m in SupportedKeyWiseMetric]:
-                raise ValueError(f"Metric '{key_metric_map[key]['metric_name']}' is not supported. Each key's metric must be among the supported metrics: {', '.join([m.value for m in SupportedKeyWiseMetric])}.")
+                raise ValueError(f"Metric '{key_metric_map[key]['metric_name']}' is not supported. "
+                                 f"Each key's metric must be among the supported metrics: {', '.join([m.value for m in SupportedKeyWiseMetric])}.")
 
             # Instantiate metric
             try:
@@ -67,13 +71,14 @@ class KeyValuePairEvaluatorBase(Metric):
             key_predictions = []
             key_targets = []
             for prediction, target in zip(predictions, targets):
+                # Use the key trace to traverse the prediction and target objects to get the values for these keys
                 try:
-                    key_prediction = prediction[key]
+                    key_prediction = reduce(operator.getitem, self.key_metric_map[key]["key_trace"], prediction)
                 except KeyError:
                     logger.debug(f"No prediction exists in this sample for key '{key}'.")
                     continue
                 try:
-                    key_target = target[key]
+                    key_target = reduce(operator.getitem, self.key_metric_map[key]["key_trace"], target)
                 except KeyError:
                     logger.debug(f"No target exists in this sample for key '{key}'.")
                     continue
@@ -84,46 +89,17 @@ class KeyValuePairEvaluatorBase(Metric):
                     key_prediction_formatted, key_target_formatted = preprocessor(key_prediction, key_target)
                     key_predictions.append(key_prediction_formatted)
                     key_targets.append(key_target_formatted)
-                except KeyError:
-                    if not isinstance(key_prediction, dict) or not isinstance(key_target, dict):
-                        logger.debug(f"Skipping prediction and target for key '{key}' since the key does not have a preprocessor, but either prediction or target is not a dictionary. "
-                                     "This means they do not have potential subkeys to be evaluated either.")
-                        continue
-                    try:
-                        preprocessor = self.key_metric_map[subkey_full_name]["preprocessor"]
-                    except KeyError:
-                        logger.debug(f"Skipping prediction '{key_prediction}' and target '{key_target}' for key '{key}' -> subkey '{subkey}' since preprocessor does not exist.")
-                        continue
-                    # TODO: This is wrong, we need to recursively update metrics for subkeys in a subroutine
-                    for subkey in key_prediction:
-                        subkey_full_name = f"{key}_{subkey}"
-                        try:
-                            key_prediction_formatted, key_target_formatted = preprocessor(key_prediction[subkey], key_target[subkey])
-                            key_predictions.append(key_prediction_formatted)
-                            key_targets.append(key_target_formatted)
-                        except KeyError:
-                            logger.debug(f"Skipping prediction '{key_prediction}' for key '{key}' -> subkey '{subkey}' since either predicted or target value does not exist.")
-                            continue
-                    for subkey in key_target:
-                        subkey_full_name = f"{key}_{subkey}"
-                        try:
-                            key_target_formatted = preprocessor(key_target[subkey])
-                            key_targets.append(key_target_formatted)
-                        except KeyError:
-                            logger.debug(f"Skipping target '{key_target}' for key '{key}' -> subkey '{subkey}' since target value does not exist.")
-                            continue
                 except ValueError as e:
                     logger.debug(f"Encountered error {repr(e)} when preprocessing prediction '{key_prediction}' and target '{key_target}' for key '{key}' to the metric's expected format.")
 
             # Convert lists to tensors for metrics that expect torch tensors
             if metric_name in [SupportedKeyWiseMetric.Classification_MulticlassAccuracy, SupportedKeyWiseMetric.Classification_MulticlassF1,
-                          SupportedKeyWiseMetric.Classification_MultilabelAccuracy, SupportedKeyWiseMetric.Classification_MultilabelF1,
-                          SupportedKeyWiseMetric.Regression_MeanAbsoluteError]:
+                               SupportedKeyWiseMetric.Classification_MultilabelAccuracy, SupportedKeyWiseMetric.Classification_MultilabelF1,
+                               SupportedKeyWiseMetric.Regression_MeanAbsoluteError]:
                 key_predictions = torch.tensor(key_predictions)
                 key_targets = torch.tensor(key_targets)
 
             try:
-                print(metric)
                 metric.update(key_predictions, key_targets)
             except Exception as e:
                 raise ValueError(f"Encountered error '{repr(e)}' when updating metric '{self.key_metric_map[key]['metric_name']}' for key '{key}'.")
