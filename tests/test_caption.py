@@ -1,7 +1,7 @@
+from irisml.tasks.create_azure_openai_chat_model import OpenAITextChatModel
 import json
 import pathlib
 import unittest
-from irisml.tasks.create_azure_openai_chat_model import OpenAITextChatModel
 
 from visionmetrics.caption import BleuScore, CIDErScore, METEORScore, ROUGELScore
 from visionmetrics.caption.azure_openai_model_eval import AzureOpenAITextModelCategoricalScore
