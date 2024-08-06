@@ -122,47 +122,47 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             if "enum" in key_schema:
                 class_map = self._get_enum_class_map(key_schema["enum"])
                 self._assign_key_metric_map_values(key=key,
-                                                    metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
-                                                    metric_args={"num_classes": len(class_map), "average": "micro"},
-                                                    class_map=class_map)
+                                                   metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
+                                                   metric_args={"num_classes": len(class_map), "average": "micro"},
+                                                   class_map=class_map)
         elif key_schema["type"] == JSONSchemaKeyType.Number or key_schema["type"] == JSONSchemaKeyType.Integer:
             self._assign_key_metric_map_values(key=key,
-                                                metric_name=SupportedKeyWiseMetric.Regression_MeanAbsoluteError,
-                                                metric_args={})
+                                               metric_name=SupportedKeyWiseMetric.Regression_MeanAbsoluteError,
+                                               metric_args={})
             if "enum" in key_schema:
                 class_map = self._get_enum_class_map(key_schema["enum"])
                 self._assign_key_metric_map_values(key=key,
-                                                    metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
-                                                    metric_args={"num_classes": len(class_map), "average": "micro"},
-                                                    class_map=class_map)
+                                                   metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
+                                                   metric_args={"num_classes": len(class_map), "average": "micro"},
+                                                   class_map=class_map)
         elif key_schema["type"] == JSONSchemaKeyType.Boolean:
             class_map = self._get_enum_class_map([True, False])
             self._assign_key_metric_map_values(key=key,
-                                                metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
-                                                metric_args={"num_classes": len(class_map), "average": "micro"},
-                                                class_map=class_map)
+                                               metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
+                                               metric_args={"num_classes": len(class_map), "average": "micro"},
+                                               class_map=class_map)
         elif key_schema["type"] == JSONSchemaKeyType.BoundingBox:
             # Currently only supports class-agnostic detection metrics
             self._assign_key_metric_map_values(key=key,
-                                                metric_name=SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
-                                                metric_args={"box_format": "xyxy", "coords": "absolute"},
-                                                class_map={"single_class": 0})
+                                               metric_name=SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
+                                               metric_args={"box_format": "xyxy", "coords": "absolute"},
+                                               class_map={"single_class": 0})
         elif key_schema["type"] == JSONSchemaKeyType.Array:
             # For more complex arrays, we default to the caption evaluator
             if key_schema["items"]["type"] in SIMPLE_KEY_TYPES:
                 if key_schema["items"]["type"] == JSONSchemaKeyType.BoundingBox:
                     # Currently only supports class-agnostic detection metrics
                     self._assign_key_metric_map_values(key=key,
-                                                        metric_name=SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
-                                                        metric_args={"box_format": "xyxy", "coords": "absolute"},
-                                                        class_map={"single_class": 0})
+                                                       metric_name=SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
+                                                       metric_args={"box_format": "xyxy", "coords": "absolute"},
+                                                       class_map={"single_class": 0})
                 else:
                     if "enum" in key_schema["items"]:
                         class_map = self._get_enum_class_map(key_schema["items"]["enum"])
                         self._assign_key_metric_map_values(key=key,
-                                                            metric_name=SupportedKeyWiseMetric.Classification_MultilabelF1,
-                                                            metric_args={"num_labels": len(class_map), "average": "micro"},
-                                                            class_map=class_map)
+                                                           metric_name=SupportedKeyWiseMetric.Classification_MultilabelF1,
+                                                           metric_args={"num_labels": len(class_map), "average": "micro"},
+                                                           class_map=class_map)
         elif key_schema["type"] == JSONSchemaKeyType.Object:
             for subkey in key_schema["properties"]:
                 subkey_name = f"{key}_{subkey}"
@@ -189,7 +189,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             # Expects torch int or float tensor of shape (N, ...) or (N, C, ...) for predictions, torch tensor of shape (N, ...) for targets
             class_map = self.key_metric_map[key]["class_map"]
             self.key_metric_map[key]["preprocessor"] = lambda pred, gt: (class_map.get(str(pred), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)),
-                                                                            class_map.get(str(gt), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)))
+                                                                         class_map.get(str(gt), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)))
         elif metric_name == SupportedKeyWiseMetric.Classification_MultilabelAccuracy or metric_name == SupportedKeyWiseMetric.Classification_MultilabelF1:
             # Expects torch int or float tensor of shape (N, C, ...)
             class_map = self.key_metric_map[key]["class_map"]
