@@ -24,7 +24,6 @@ The above metrics are available for Binary, Multiclass, and Multilabel classific
 - `ClassAgnosticAveragePrecision`: Coco mean average prevision (mAP) calculated in a class-agnostic manner. Considers all classes as one class.
 - `DetectionConfusionMatrix`: Similar to classification confusion matrix, but for object detection tasks.
 
-
 ### Image Caption:
   - `BleuScore`: computes the Bleu score. For more details, refer to [BLEU: a Method for Automatic Evaluation of Machine Translation](http://www.aclweb.org/anthology/P02-1040.pdf).
   - `METEORScore`: computes the Meteor score. For more details, refer to [Project page](http://www.cs.cmu.edu/~alavie/METEOR/). We use the latest version (1.5) of the [Code](https://github.com/mjdenkowski/meteor).
@@ -50,8 +49,11 @@ The above metrics are available for Binary, Multiclass, and Multilabel classific
   - `RetrievalMAP`: computes [Mean Average Precision@k](https://stackoverflow.com/questions/54966320/mapk-computation), an information retrieval metric.
   - `RetrievalPrecisionRecallCurveNPoints`: computes a Precision-Recall Curve, interpolated at k points and averaged over all samples. 
 
-### Grounding
+### Grounding:
   - `Recall`: computes Recall@k, which is the percentage of correct grounding in top-k among all relevant items.
+
+### Key-Value Pair Extraction:
+  - `KeyValuePairExtractionScore`: computes key-wise metrics for each key in a JSON Schema-formatted key-value pair schema defining a set of keys to be extracted from an image, where each key-wise metric is inferred according to the key-value pair schema.
 
 ## Example Usage
 
