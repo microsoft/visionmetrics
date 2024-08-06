@@ -27,34 +27,30 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         key_value_pair_schema: dictionary in JSON Schema format indicating each key and expected value type for each extracted field.
         Example:
         {
-            "name": "Defect detection - screws",
-            "description": "Extract defect location and type from an image of metal screws on an assembly line",
-            "fieldSchema": {
-                "defects": {
-                    "type": "array",
-                    "description": "The defect types with bounding boxes detected in the image",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "defectType": {
-                                "type": "string",
-                                "description": "The type of defect detected",
-                                "enum": ["scratch", "dent", "discoloration", "crack"]
-                            },
-                            "defectLocation": {
-                                "type": "bbox",  // this is a predefined complex object type
-                                "description": "Bounding box indicating the location of the defect"
-                            }
-                        }
-                    }
-                },
-                "rationale": {
+            "defect_types": {
+                "type": "array",
+                "description": "The defect types present in the image.",
+                "items": {
                     "type": "string",
-                    "description": "Rationale for the identified defects"
+                    "description": "The type of defect detected",
+                    "enum": ["scratch", "dent", "discoloration", "crack"]
                 }
+            },
+            "defect_locations": {
+                "type": "array",
+                "description": "The defect bounding boxes corresponding to each of the identified types.",
+                "items": {
+                    "type": "bbox",
+                    "description": "Bounding box indicating the location of the defect."
+                }
+            },
+            "rationale": {
+                "type": "string",
+                "description": "Rationale for the identified defects."
             }
         }
-        Note: In the above example, both "defects" and "rationale" would be evaluated as text. We currently do not support non-text evaluation for arrays with complex item types.
+        Note: In the above example, if "defect_types" and "defect_locations" were both items of a larger "defects" array rather than separate top-level arrays, then the whole "defects" field
+        would be evaluated as text. We currently do not support non-text evaluation for arrays with complex item types.
 
         endpoint: string of the Azure OpenAI endpoint to be used as the default text evaluator.
         deployment_name: string of the Azure OpenAI deployment name to be used for the default text evaluator.

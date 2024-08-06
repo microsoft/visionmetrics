@@ -28,11 +28,32 @@ class KeyValuePairEvaluatorBase(Metric):
     Each key can have a different metric for evaluation. The metrics supported are specified in SupportedKeyWiseMetric.
 
     Args:
-        key_metric_map: dictionary from keys (extracted field names) to a dictionary with three required fields:
+        key_metric_map: dictionary from keys (extracted field names) to a dictionary with four required fields:
         1. metric_name: string of the metric name as defined in visionmetrics (e.g., 'classification.MulticlassAccuracy'), which should be among the ones specified in SupportedKeyWiseMetric.
         2. metric_args: dictionary of args to pass in as keyword arguments to the initialization function of the metric.
         3. preprocessor: function object that can be called with (prediction, target) values for a single instance to preprocess them into the desired format for the corresponding metric.
         4. key_trace: list of strings of key names that traces the path to the current key in the key-value pair prediction/target object (not in the schema).
+        Example:
+        {
+            "defect_types": {
+                "metric_name": SupportedKeyWiseMetric.Classification_MultilabelF1,
+                "metric_args": {"num_labels": 5, "average": "micro"},
+                "preprocessor": <reference to multilabel classification preprocessing function; see example implementation in key_value_pair_eval.py>
+                "key_trace": ["defect_types"]
+            },
+            "defect_locations": {
+                "metric_name": SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
+                "metric_args": {"box_format": "xyxy", "coords": "absolute"},
+                "preprocessor": <reference to detection preprocessing function; see example implementation in key_value_pair_eval.py>
+                "key_trace": ["defect_locations"]
+            },
+            "rationale": {
+                "metric_name": SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
+                "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT},
+                "preprocessor": <reference to captioning preprocessing function; see example implementations in key_value_pair_eval.py>
+                "key_trace": ["rationale"]
+            }
+        }
     """
     def __init__(self, key_metric_map: dict):
         super().__init__()
