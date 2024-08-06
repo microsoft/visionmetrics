@@ -221,7 +221,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
             "properties": {
                 "has_non_contoso_brands": {
                     "type": "boolean",
-                    "description": "Whether the image depicts or contains anything about non-Contoso brands"
+                    "description": "Whether the image depicts or contains anything about non-Contoso brands."
                 },
                 "contoso_specific": {
                     "type": "object",

@@ -25,8 +25,8 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
     Note: Currently, detection metrics are class-agnostic; bounding boxes are evaluated separately from classes. TODO: Consider supporting multiclass detection metrics, which may complicate logic.
     Args:
         key_value_pair_schema: dictionary in JSON Schema format indicating each key and expected value type for each extracted field.
-        Example:
-        {
+        Examples (corresponding to the examples in key_value_pair_eval_base.py):
+        defect_detection_schema = {
             "defect_types": {
                 "type": "array",
                 "description": "The defect types present in the image.",
@@ -49,8 +49,37 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                 "description": "Rationale for the identified defects."
             }
         }
-        Note: In the above example, if "defect_types" and "defect_locations" were both items of a larger "defects" array rather than separate top-level arrays, then the whole "defects" field
-        would be evaluated as text. We currently do not support non-text evaluation for arrays with complex item types.
+        Note: In the above defect_detection_schema example, if "defect_types" and "defect_locations" were both items of a larger "defects" array rather than separate top-level arrays,
+        then the whole "defects" field would be evaluated as text. We currently do not support non-text evaluation for arrays with complex item types.
+        brand_sentiment_schema = {
+            "brand_sentiment": {
+                "type": "object",
+                "description": "Attributes of sentiment toward brands depicted in the image.",
+                "properties": {
+                    "has_non_contoso_brands": {
+                        "type": "boolean",
+                        "description": "Whether the image depicts or contains anything about non-Contoso brands."
+                    },
+                    "contoso_specific": {
+                        "type": "object",
+                        "description": "Sentiment related specifically to the company Contoso.",
+                        "properties": {
+                            "sentiment": {
+                                "type": "string",
+                                "description": "Sentiment toward the brand as depicted in the image.",
+                                "enum": ["very positive", "somewhat positive", "neutral", "somewhat negative", "negative"]
+                            },
+                            "logo_bounding_box": {
+                                "type": "bbox",
+                                "description": "The bounding box around the Contoso logo in the image, if applicable."
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Note: In the above brand_sentiment_schema example, since the nested objects are all objects (not arrays), the object is recursively traversed to assign metrics to the
+        innermost object fields ("sentiment" and "logo_bounding_box").
 
         endpoint: string of the Azure OpenAI endpoint to be used as the default text evaluator.
         deployment_name: string of the Azure OpenAI deployment name to be used for the default text evaluator.

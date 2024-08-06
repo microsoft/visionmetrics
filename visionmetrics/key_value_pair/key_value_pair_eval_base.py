@@ -33,27 +33,48 @@ class KeyValuePairEvaluatorBase(Metric):
         2. metric_args: dictionary of args to pass in as keyword arguments to the initialization function of the metric.
         3. preprocessor: function object that can be called with (prediction, target) values for a single instance to preprocess them into the desired format for the corresponding metric.
         4. key_trace: list of strings of key names that traces the path to the current key in the key-value pair prediction/target object (not in the schema).
-        Example:
-        {
+        Examples (corresponding to the examples in key_value_pair_eval.py):
+        defect_detection_key_metric_map = {
             "defect_types": {
                 "metric_name": SupportedKeyWiseMetric.Classification_MultilabelF1,
                 "metric_args": {"num_labels": 5, "average": "micro"},
-                "preprocessor": <reference to multilabel classification preprocessing function; see example implementation in key_value_pair_eval.py>
+                "preprocessor": <reference to multilabel classification preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "key_trace": ["defect_types"]
             },
             "defect_locations": {
                 "metric_name": SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
                 "metric_args": {"box_format": "xyxy", "coords": "absolute"},
-                "preprocessor": <reference to detection preprocessing function; see example implementation in key_value_pair_eval.py>
+                "preprocessor": <reference to detection preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "key_trace": ["defect_locations"]
             },
             "rationale": {
                 "metric_name": SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
                 "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT},
-                "preprocessor": <reference to captioning preprocessing function; see example implementations in key_value_pair_eval.py>
+                "preprocessor": <reference to captioning preprocessing function; see example implementations in key_value_pair_eval.py>,
                 "key_trace": ["rationale"]
             }
         }
+        brand_sentiment_key_metric_map = {
+            "brand_sentiment_has_non_contoso_brands": {
+                "metric_name": SupportedKeyWiseMetric.Classification_MulticlassF1,
+                "metric_args": {"num_classes": 3, "average": "micro"},
+                "preprocessor": <reference to multiclass classification preprocessing function; see example implementation in key_value_pair_eval.py>,
+                "key_trace": ["brand_sentiment", "has_non_contoso_brands"]
+            },
+            "brand_sentiment_contoso_specific_sentiment": {
+                "metric_name": SupportedKeyWiseMetric.Classification_MulticlassF1,
+                "metric_args": {"num_classes": 6, "average": "micro"},
+                "preprocessor": <reference to multiclass classification preprocessing function; see example implementation in key_value_pair_eval.py>,
+                "key_trace": ["brand_sentiment", "contoso_specific", "sentiment"]
+            },
+            "brand_sentiment_contoso_specific_logo_bounding_box": {
+                "metric_name": SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
+                "metric_args": {"box_format": "xyxy", "coords": "absolute"},
+                "preprocessor": <reference to detection preprocessing function; see example implementation in key_value_pair_eval.py>,
+                "key_trace": ["brand_sentiment", "contoso_specific", "logo_bounding_box"]
+            }
+        }
+    }
     """
     def __init__(self, key_metric_map: dict):
         super().__init__()
