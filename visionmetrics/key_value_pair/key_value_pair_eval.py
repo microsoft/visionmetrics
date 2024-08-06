@@ -104,7 +104,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         if class_map:
             self.key_metric_map[key]["class_map"] = class_map
 
-    def _populate_key_metric_map(self, key: str, key_schema: dict, key_trace: list[str]):
+    def _populate_key_metric_map(self, key: str, key_schema: dict, key_trace: list):
         """
         Recursive function that populates the object-level key_metric_map dictionary. For a given key and key_schema in JSON Schema format,
         the function populates the metric_name, metric_args, and preprocessor values in the dictionary.
