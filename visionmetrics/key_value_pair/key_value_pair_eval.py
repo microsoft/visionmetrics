@@ -118,57 +118,57 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         self._assign_key_metric_map_values(key=key,
                                            metric_name=SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
                                            metric_args={"endpoint": self.endpoint, "deployment_name": self.deployment_name})
-        match key_schema["type"]:
-            case JSONSchemaKeyType.String:
-                if "enum" in key_schema:
-                    class_map = self._get_enum_class_map(key_schema["enum"])
+        if key_schema["type"] == JSONSchemaKeyType.String:
+            if "enum" in key_schema:
+                class_map = self._get_enum_class_map(key_schema["enum"])
+                self._assign_key_metric_map_values(key=key,
+                                                    metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
+                                                    metric_args={"num_classes": len(class_map), "average": "micro"},
+                                                    class_map=class_map)
+        elif key_schema["type"] == JSONSchemaKeyType.Number or key_schema["type"] == JSONSchemaKeyType.Integer:
+            self._assign_key_metric_map_values(key=key,
+                                                metric_name=SupportedKeyWiseMetric.Regression_MeanAbsoluteError,
+                                                metric_args={})
+            if "enum" in key_schema:
+                class_map = self._get_enum_class_map(key_schema["enum"])
+                self._assign_key_metric_map_values(key=key,
+                                                    metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
+                                                    metric_args={"num_classes": len(class_map), "average": "micro"},
+                                                    class_map=class_map)
+        elif key_schema["type"] == JSONSchemaKeyType.Boolean:
+            class_map = self._get_enum_class_map([True, False])
+            self._assign_key_metric_map_values(key=key,
+                                                metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
+                                                metric_args={"num_classes": len(class_map), "average": "micro"},
+                                                class_map=class_map)
+        elif key_schema["type"] == JSONSchemaKeyType.BoundingBox:
+            # Currently only supports class-agnostic detection metrics
+            self._assign_key_metric_map_values(key=key,
+                                                metric_name=SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
+                                                metric_args={"box_format": "xyxy", "coords": "absolute"},
+                                                class_map={"single_class": 0})
+        elif key_schema["type"] == JSONSchemaKeyType.Array:
+            # For more complex arrays, we default to the caption evaluator
+            if key_schema["items"]["type"] in SIMPLE_KEY_TYPES:
+                if key_schema["items"]["type"] == JSONSchemaKeyType.BoundingBox:
+                    # Currently only supports class-agnostic detection metrics
                     self._assign_key_metric_map_values(key=key,
-                                                       metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
-                                                       metric_args={"num_classes": len(class_map), "average": "micro"},
-                                                       class_map=class_map)
-            case JSONSchemaKeyType.Number | JSONSchemaKeyType.Integer:
-                self._assign_key_metric_map_values(key=key,
-                                                   metric_name=SupportedKeyWiseMetric.Regression_MeanAbsoluteError,
-                                                   metric_args={})
-                if "enum" in key_schema:
-                    class_map = self._get_enum_class_map(key_schema["enum"])
-                    self._assign_key_metric_map_values(key=key,
-                                                       metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
-                                                       metric_args={"num_classes": len(class_map), "average": "micro"},
-                                                       class_map=class_map)
-            case JSONSchemaKeyType.Boolean:
-                class_map = self._get_enum_class_map([True, False])
-                self._assign_key_metric_map_values(key=key,
-                                                   metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
-                                                   metric_args={"num_classes": len(class_map), "average": "micro"},
-                                                   class_map=class_map)
-            case JSONSchemaKeyType.BoundingBox:
-                # Currently only supports class-agnostic detection metrics
-                self._assign_key_metric_map_values(key=key,
-                                                   metric_name=SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
-                                                   metric_args={"box_format": "xyxy", "coords": "absolute"},
-                                                   class_map={"single_class": 0})
-            case JSONSchemaKeyType.Array:
-                # For more complex arrays, we default to the caption evaluator
-                if key_schema["items"]["type"] in SIMPLE_KEY_TYPES:
-                    if key_schema["items"]["type"] == JSONSchemaKeyType.BoundingBox:
-                        # Currently only supports class-agnostic detection metrics
+                                                        metric_name=SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
+                                                        metric_args={"box_format": "xyxy", "coords": "absolute"},
+                                                        class_map={"single_class": 0})
+                else:
+                    if "enum" in key_schema["items"]:
+                        class_map = self._get_enum_class_map(key_schema["items"]["enum"])
                         self._assign_key_metric_map_values(key=key,
-                                                           metric_name=SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
-                                                           metric_args={"box_format": "xyxy", "coords": "absolute"},
-                                                           class_map={"single_class": 0})
-                    else:
-                        if "enum" in key_schema["items"]:
-                            class_map = self._get_enum_class_map(key_schema["items"]["enum"])
-                            self._assign_key_metric_map_values(key=key,
-                                                               metric_name=SupportedKeyWiseMetric.Classification_MultilabelF1,
-                                                               metric_args={"num_labels": len(class_map), "average": "micro"},
-                                                               class_map=class_map)
-            case JSONSchemaKeyType.Object:
-                for subkey in key_schema["properties"]:
-                    subkey_name = f"{key}_{subkey}"
-                    self._populate_key_metric_map(key=subkey_name, key_schema=key_schema["properties"][subkey], key_trace=key_trace + [subkey])
-                del self.key_metric_map[key]
+                                                            metric_name=SupportedKeyWiseMetric.Classification_MultilabelF1,
+                                                            metric_args={"num_labels": len(class_map), "average": "micro"},
+                                                            class_map=class_map)
+        elif key_schema["type"] == JSONSchemaKeyType.Object:
+            for subkey in key_schema["properties"]:
+                subkey_name = f"{key}_{subkey}"
+                self._populate_key_metric_map(key=subkey_name, key_schema=key_schema["properties"][subkey], key_trace=key_trace + [subkey])
+            del self.key_metric_map[key]
+
         if key in self.key_metric_map:
             self._populate_key_preprocessor(key=key, type=key_schema["type"])
             self.key_metric_map[key]["key_trace"] = key_trace
@@ -181,57 +181,57 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             key: string of the key name, which should be identical to the key that will be evaluated in the prediction and target dictionaries.
             type: string specifying the JSON Schema type of the key, which should be among those in JSONSchemaKeyType.
         """
-        match self.key_metric_map[key]["metric_name"]:
-            case SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore:
-                # Expects list of strings for predictions, list of list of strings for targets
-                self.key_metric_map[key]["preprocessor"] = lambda pred, gt: (str(pred), [str(gt)])
-            case SupportedKeyWiseMetric.Classification_MulticlassAccuracy | SupportedKeyWiseMetric.Classification_MulticlassF1:
-                # Expects torch int or float tensor of shape (N, ...) or (N, C, ...) for predictions, torch tensor of shape (N, ...) for targets
-                class_map = self.key_metric_map[key]["class_map"]
-                self.key_metric_map[key]["preprocessor"] = lambda pred, gt: (class_map.get(str(pred), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)),
-                                                                             class_map.get(str(gt), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)))
-            case SupportedKeyWiseMetric.Classification_MultilabelAccuracy | SupportedKeyWiseMetric.Classification_MultilabelF1:
-                # Expects torch int or float tensor of shape (N, C, ...)
-                class_map = self.key_metric_map[key]["class_map"]
+        metric_name = self.key_metric_map[key]["metric_name"]
+        if metric_name == SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore:
+            # Expects list of strings for predictions, list of list of strings for targets
+            self.key_metric_map[key]["preprocessor"] = lambda pred, gt: (str(pred), [str(gt)])
+        elif metric_name == SupportedKeyWiseMetric.Classification_MulticlassAccuracy or metric_name == SupportedKeyWiseMetric.Classification_MulticlassF1:
+            # Expects torch int or float tensor of shape (N, ...) or (N, C, ...) for predictions, torch tensor of shape (N, ...) for targets
+            class_map = self.key_metric_map[key]["class_map"]
+            self.key_metric_map[key]["preprocessor"] = lambda pred, gt: (class_map.get(str(pred), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)),
+                                                                            class_map.get(str(gt), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)))
+        elif metric_name == SupportedKeyWiseMetric.Classification_MultilabelAccuracy or metric_name == SupportedKeyWiseMetric.Classification_MultilabelF1:
+            # Expects torch int or float tensor of shape (N, C, ...)
+            class_map = self.key_metric_map[key]["class_map"]
 
-                def multilabel_preprocess(pred, gt):
-                    class_indices_pred = [class_map.get(p, class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for p in pred]
-                    one_hot_pred = [1 if class_index in class_indices_pred else 0 for class_index in range(0, len(class_map))]
-                    class_indices_gt = [class_map.get(g, class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for g in gt]
-                    one_hot_gt = [1 if class_index in class_indices_gt else 0 for class_index in range(0, len(class_map))]
-                    return (one_hot_pred, one_hot_gt)
-                self.key_metric_map[key]["preprocessor"] = multilabel_preprocess
-            case SupportedKeyWiseMetric.Detection_MeanAveragePrecision:
-                # Expects list of list of list of classes, [optionally scores], and bounding box coordinates, e.g., [[[0, 1.0, 0, 0, 10, 10]]]
-                class_map = self.key_metric_map[key]["class_map"]
-                if type == JSONSchemaKeyType.BoundingBox:
-                    def detection_preprocess(pred, gt):
-                        if not isinstance(pred, list) or (isinstance(pred, list) and len(pred) < 4):
-                            return_pred = [[class_map["single_class"]] + [0., 0., 0., 0.]]
+            def multilabel_preprocess(pred, gt):
+                class_indices_pred = [class_map.get(p, class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for p in pred]
+                one_hot_pred = [1 if class_index in class_indices_pred else 0 for class_index in range(0, len(class_map))]
+                class_indices_gt = [class_map.get(g, class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for g in gt]
+                one_hot_gt = [1 if class_index in class_indices_gt else 0 for class_index in range(0, len(class_map))]
+                return (one_hot_pred, one_hot_gt)
+            self.key_metric_map[key]["preprocessor"] = multilabel_preprocess
+        elif metric_name == SupportedKeyWiseMetric.Detection_MeanAveragePrecision:
+            # Expects list of list of list of classes, [optionally scores], and bounding box coordinates, e.g., [[[0, 1.0, 0, 0, 10, 10]]]
+            class_map = self.key_metric_map[key]["class_map"]
+            if type == JSONSchemaKeyType.BoundingBox:
+                def detection_preprocess(pred, gt):
+                    if not isinstance(pred, list) or (isinstance(pred, list) and len(pred) < 4):
+                        return_pred = [[class_map["single_class"]] + [0., 0., 0., 0.]]
+                    else:
+                        return_pred = [[class_map["single_class"]] + pred] if len(pred) == 5 else [[class_map["single_class"]] + [1.0] + pred]
+                    if not isinstance(gt, list) or (isinstance(gt, list) and len(gt) < 4):
+                        return_gt = [[class_map["single_class"]] + [0., 0., 0., 0.]]
+                    else:
+                        return_gt = [[class_map["single_class"]] + gt]
+                    return (return_pred, return_gt)
+                self.key_metric_map[key]["preprocessor"] = detection_preprocess
+            elif type == JSONSchemaKeyType.Array:
+                def detection_preprocess(pred, gt):
+                    return_pred = []
+                    return_gt = []
+                    for p in pred:
+                        if not isinstance(p, list) or (isinstance(p, list) and len(p) < 4):
+                            return_pred.append([class_map["single_class"]] + [0., 0., 0., 0.])
                         else:
-                            return_pred = [[class_map["single_class"]] + pred] if len(pred) == 5 else [[class_map["single_class"]] + [1.0] + pred]
-                        if not isinstance(gt, list) or (isinstance(gt, list) and len(gt) < 4):
-                            return_gt = [[class_map["single_class"]] + [0., 0., 0., 0.]]
+                            return_pred.append([class_map["single_class"]] + p if len(p) == 5 else [class_map["single_class"]] + [1.0] + p)
+                    for g in gt:
+                        if not isinstance(g, list) or (isinstance(g, list) and len(g) < 4):
+                            return_gt.append([class_map["single_class"]] + [0., 0., 0., 0.])
                         else:
-                            return_gt = [[class_map["single_class"]] + gt]
-                        return (return_pred, return_gt)
-                    self.key_metric_map[key]["preprocessor"] = detection_preprocess
-                elif type == JSONSchemaKeyType.Array:
-                    def detection_preprocess(pred, gt):
-                        return_pred = []
-                        return_gt = []
-                        for p in pred:
-                            if not isinstance(p, list) or (isinstance(p, list) and len(p) < 4):
-                                return_pred.append([class_map["single_class"]] + [0., 0., 0., 0.])
-                            else:
-                                return_pred.append([class_map["single_class"]] + p if len(p) == 5 else [class_map["single_class"]] + [1.0] + p)
-                        for g in gt:
-                            if not isinstance(g, list) or (isinstance(g, list) and len(g) < 4):
-                                return_gt.append([class_map["single_class"]] + [0., 0., 0., 0.])
-                            else:
-                                return_gt.append([class_map["single_class"]] + g if len(g) == 5 else [class_map["single_class"]] + [1.0] + g)
-                        return (return_pred, return_gt)
-                    self.key_metric_map[key]["preprocessor"] = detection_preprocess
-            case SupportedKeyWiseMetric.Regression_MeanAbsoluteError:
-                # Expects torch int or float tensor of shape (N)
-                self.key_metric_map[key]["preprocessor"] = lambda pred, gt: (float(pred), float(gt))
+                            return_gt.append([class_map["single_class"]] + g if len(g) == 5 else [class_map["single_class"]] + [1.0] + g)
+                    return (return_pred, return_gt)
+                self.key_metric_map[key]["preprocessor"] = detection_preprocess
+        elif metric_name == SupportedKeyWiseMetric.Regression_MeanAbsoluteError:
+            # Expects torch int or float tensor of shape (N)
+            self.key_metric_map[key]["preprocessor"] = lambda pred, gt: (float(pred), float(gt))
