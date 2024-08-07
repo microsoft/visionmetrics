@@ -148,7 +148,7 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
         try:
             f1 = (2 * precision * recall) / (precision + recall)
         except ZeroDivisionError:
-            f1 = 0
+            f1 = 0.
         try:
             accuracy = tp + tn / (tp + tn + fn + fp_gt_null + fp_gt_not_null)
         except ZeroDivisionError:
