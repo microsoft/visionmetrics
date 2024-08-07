@@ -167,3 +167,36 @@ class DetectionConfusionMatrix(Metric):
         iou_value = intersection / union if union != 0 else 0
 
         return iou_value
+
+
+class DetectionMicroPrecisionRecallF1(DetectionConfusionMatrix):
+    """
+    Calculates and returns the precision, recall, and F1 in the context of object detection based on the confusion matrix.
+    All arguments are the same as DetectionConfusionMatrix, except for:
+        iou_threshold: float between [0.0, 1.0] inclusive indicating the threshold (exclusive) of overlap between predicted and ground truth bounding boxes
+        above which a detection is considered a true positive.
+    """
+    def __init__(self, iou_threshold=0.5):
+        super().__init__(iou_threshold=iou_threshold)
+
+    def compute(self):
+        tp = self.tp.item()
+        fp = self.fp.item()
+        fn = self.fn.item()
+        try:
+            precision = tp / (tp + fp)
+        except ZeroDivisionError:
+            precision = 0.
+        try:
+            recall = tp / (tp + fn)
+        except ZeroDivisionError:
+            recall = 0.
+        try:
+            f1 = (2 * precision * recall) / (precision + recall)
+        except ZeroDivisionError:
+            f1 = 0.
+        return {
+            "Precision": precision,
+            "Recall": recall,
+            "F1": f1
+        }
