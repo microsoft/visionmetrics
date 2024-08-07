@@ -152,7 +152,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                                                    class_map=class_map)
         elif key_schema["type"] == JSONSchemaKeyType.Number or key_schema["type"] == JSONSchemaKeyType.Integer:
             self._assign_key_metric_map_values(key=key,
-                                               metric_name=SupportedKeyWiseMetric.Regression_MeanAbsoluteError,
+                                               metric_name=SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score,
                                                metric_args={})
             if "enum" in key_schema:
                 class_map = self._get_enum_class_map(key_schema["enum"])
@@ -169,7 +169,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         elif key_schema["type"] == JSONSchemaKeyType.BoundingBox:
             # Currently only supports class-agnostic detection metrics
             self._assign_key_metric_map_values(key=key,
-                                               metric_name=SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
+                                               metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
                                                metric_args={"box_format": "xyxy", "coords": "absolute"},
                                                class_map={"single_class": 0})
         elif key_schema["type"] == JSONSchemaKeyType.Array:
@@ -178,7 +178,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                 if key_schema["items"]["type"] == JSONSchemaKeyType.BoundingBox:
                     # Currently only supports class-agnostic detection metrics
                     self._assign_key_metric_map_values(key=key,
-                                                       metric_name=SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
+                                                       metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
                                                        metric_args={"box_format": "xyxy", "coords": "absolute"},
                                                        class_map={"single_class": 0})
                 else:
@@ -226,7 +226,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                 one_hot_gt = [1 if class_index in class_indices_gt else 0 for class_index in range(0, len(class_map))]
                 return (one_hot_pred, one_hot_gt)
             self.key_metric_map[key]["preprocessor"] = multilabel_preprocess
-        elif metric_name == SupportedKeyWiseMetric.Detection_MeanAveragePrecision:
+        elif metric_name == SupportedKeyWiseMetric.Detection_MeanAveragePrecision or metric_name == SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1:
             # Expects list of list of list of classes, [optionally scores], and bounding box coordinates, e.g., [[[0, 1.0, 0, 0, 10, 10]]]
             class_map = self.key_metric_map[key]["class_map"]
             if type == JSONSchemaKeyType.BoundingBox:
@@ -257,6 +257,6 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                             return_gt.append([class_map["single_class"]] + g if len(g) == 5 else [class_map["single_class"]] + [1.0] + g)
                     return (return_pred, return_gt)
                 self.key_metric_map[key]["preprocessor"] = detection_preprocess
-        elif metric_name == SupportedKeyWiseMetric.Regression_MeanAbsoluteError:
+        elif metric_name == SupportedKeyWiseMetric.Regression_MeanAbsoluteError or metric_name == SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score:
             # Expects torch int or float tensor of shape (N)
             self.key_metric_map[key]["preprocessor"] = lambda pred, gt: (float(pred), float(gt))

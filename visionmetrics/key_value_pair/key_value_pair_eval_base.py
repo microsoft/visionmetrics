@@ -18,7 +18,19 @@ class SupportedKeyWiseMetric(str, Enum):
     Classification_MulticlassF1 = "classification.MulticlassF1Score"
     Classification_MultilabelF1 = "classification.MultilabelF1Score"
     Detection_MeanAveragePrecision = "detection.MeanAveragePrecision"
+    Detection_MicroPrecisionRecallF1 = "detection.DetectionMicroPrecisionRecallF1"
     Regression_MeanAbsoluteError = "regression.MeanAbsoluteError"
+    Regression_MeanAbsoluteErrorF1Score = "regression.MeanAbsoluteErrorF1Score"
+
+
+SUPPORTED_KEY_WISE_METRICS = [m.value for m in SupportedKeyWiseMetric]
+SUPPORTED_F1_METRICS = [
+    SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
+    SupportedKeyWiseMetric.Classification_MulticlassF1,
+    SupportedKeyWiseMetric.Classification_MultilabelF1,
+    SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
+    SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score
+]
 
 
 class KeyValuePairEvaluatorBase(Metric):
@@ -42,7 +54,7 @@ class KeyValuePairEvaluatorBase(Metric):
                 "key_trace": ["defect_types"]
             },
             "defect_locations": {
-                "metric_name": SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
+                "metric_name": SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
                 "metric_args": {"box_format": "xyxy", "coords": "absolute"},
                 "preprocessor": <reference to detection preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "key_trace": ["defect_locations"]
@@ -68,7 +80,7 @@ class KeyValuePairEvaluatorBase(Metric):
                 "key_trace": ["brand_sentiment", "contoso_specific", "sentiment"]
             },
             "brand_sentiment_contoso_specific_logo_bounding_box": {
-                "metric_name": SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
+                "metric_name": SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
                 "metric_args": {"box_format": "xyxy", "coords": "absolute"},
                 "preprocessor": <reference to detection preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "key_trace": ["brand_sentiment", "contoso_specific", "logo_bounding_box"]
@@ -91,9 +103,9 @@ class KeyValuePairEvaluatorBase(Metric):
             except KeyError:
                 raise ValueError(f"Each value in key_metric_map must be a dictionary with a 'metric_name' key for a supported metric in visionmetrics of the form <task_name>.<metric_name>"
                                  f" and a 'metric_args' key for a dictionary of arguments to pass to the initialization function of that metric. Key '{key}' does not satisfy this rule.")
-            if metric_name not in [m.value for m in SupportedKeyWiseMetric]:
+            if metric_name not in SUPPORTED_KEY_WISE_METRICS:
                 raise ValueError(f"Metric '{key_metric_map[key]['metric_name']}' is not supported. "
-                                 f"Each key's metric must be among the supported metrics: {', '.join([m.value for m in SupportedKeyWiseMetric])}.")
+                                 f"Each key's metric must be among the supported metrics: {', '.join(SUPPORTED_KEY_WISE_METRICS)}.")
 
             # Instantiate metric
             try:
@@ -137,7 +149,7 @@ class KeyValuePairEvaluatorBase(Metric):
             # Convert lists to tensors for metrics that expect torch tensors
             if metric_name in [SupportedKeyWiseMetric.Classification_MulticlassAccuracy, SupportedKeyWiseMetric.Classification_MulticlassF1,
                                SupportedKeyWiseMetric.Classification_MultilabelAccuracy, SupportedKeyWiseMetric.Classification_MultilabelF1,
-                               SupportedKeyWiseMetric.Regression_MeanAbsoluteError]:
+                               SupportedKeyWiseMetric.Regression_MeanAbsoluteError, SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score]:
                 key_predictions = torch.tensor(key_predictions)
                 key_targets = torch.tensor(key_targets)
 
@@ -150,11 +162,52 @@ class KeyValuePairEvaluatorBase(Metric):
         """
         Computes key-wise metrics and returns a dictionary mapping keys to verbatim results from the evaluator for the corresponding key.
         """
-        key_wise_results = {k: None for k in self.key_evaluator_map}
+        key_wise_scores = {k: None for k in self.key_evaluator_map}
         for key in self.key_evaluator_map:
             try:
                 metric = self.key_evaluator_map[key]
-                key_wise_results[key] = metric.compute()
+                key_wise_scores[key] = metric.compute()
             except Exception as e:
                 raise ValueError(f"Encountered error '{repr(e)}' when computing metric '{self.key_metric_map[key]['metric_name']}' for key '{key}'.")
-        return key_wise_results
+
+        # If all keys support F1 scores, compute total micro- and macro-averaged F1 scores
+        if all([self.key_metric_map[key]["metric_name"] in SUPPORTED_F1_METRICS]):
+            macro_f1 = 0.
+            total_tp, total_fp, total_fn = 0, 0, 0
+            for key in self.key_metric_map:
+                metric_name = self.key_metric_map[key]["metric_name"]
+                if metric_name == SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore:
+                    macro_f1 += key_wise_scores[key]["F1"]
+                    total_tp += key_wise_scores[key]["TP"]
+                    total_fp += key_wise_scores[key]["FP_GTNull"]
+                    total_fp += key_wise_scores[key]["FP_GTNotNull"]
+                    total_fn += key_wise_scores[key]["FN"]
+                elif metric_name == SupportedKeyWiseMetric.Classification_MulticlassF1 or metric_name == SupportedKeyWiseMetric.Classification_MultilabelF1:
+                    macro_f1 += key_wise_scores[key].item()
+                    total_tp += self.key_evaluator_map[key].tp.sum().item()
+                    total_fp += self.key_evaluator_map[key].fp.sum().item()
+                    total_fn += self.key_evaluator_map[key].fn.sum().item()
+                elif metric_name == SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1 or metric_name == SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score:
+                    macro_f1 += key_wise_scores[key]["F1"]
+                    total_tp += self.key_evaluator_map[key].tp.item()
+                    total_fp += self.key_evaluator_map[key].fp.item()
+                    total_fn += self.key_evaluator_map[key].fn.item()
+            macro_f1 = macro_f1 / len(self.key_metric_map)
+            try:
+                total_precision = total_tp / (total_tp + total_fp)
+            except ZeroDivisionError:
+                total_precision = 0.
+            try:
+                total_recall = total_tp / (total_tp + total_fn)
+            except ZeroDivisionError:
+                total_recall = 0.
+            try:
+                micro_f1 = (2 * total_precision * total_recall) / (total_precision + total_recall)
+            except ZeroDivisionError:
+                micro_f1 = 0.
+
+        return {
+            "MicroF1": micro_f1,
+            "MacroF1": macro_f1,
+            "KeyWiseScores": key_wise_scores
+        }
