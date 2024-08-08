@@ -134,13 +134,11 @@ class KeyValuePairEvaluatorBase(Metric):
                 try:
                     key_prediction = reduce(operator.getitem, key_trace, prediction)
                 except KeyError:
-                    logger.debug(f"No prediction exists in this sample for key '{key}'.")
-                    continue
+                    raise ValueError(f"The key '{key}' does not exist in the prediction sample '{prediction}'.")
                 try:
                     key_target = reduce(operator.getitem, key_trace, target)
                 except KeyError:
-                    logger.debug(f"No target exists in this sample for key '{key}'.")
-                    continue
+                    raise ValueError(f"The key '{key}' does not exist in the target sample '{target}'.")
 
                 # Construct expected evaluation metric update format for the current key
                 try:

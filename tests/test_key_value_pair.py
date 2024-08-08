@@ -27,7 +27,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
         "activity": {
             "type": "string",
             "description": "The most salient activity of the chinchillas in the image.",
-            "enum": ["sleeping", "running", "playing", "fighting", "eating", "drinking"]
+            "enum": ["sleeping", "running", "playing", "fighting", "eating", "drinking", "none"]
         },
         "cage_number": {
             "type": "integer",
@@ -63,8 +63,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
         },
         "activity": {
             "metric_name": SupportedKeyWiseMetric.Classification_MulticlassF1,
-            "metric_args": {"num_classes": 7, "average": "micro"},
-            "class_map": {"sleeping": 0, "running": 1, "playing": 2, "fighting": 3, "eating": 4, "drinking": 5, "<|other|>": 6},
+            "metric_args": {"num_classes": 8, "average": "micro"},
+            "class_map": {"sleeping": 0, "running": 1, "playing": 2, "fighting": 3, "eating": 4, "drinking": 5, "none": 6, "<|other|>": 7},
             "key_trace": ["activity"]
         },
         "cage_number": {
@@ -98,10 +98,6 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                 "type": "bbox",
                 "description": "Bounding box indicating the location of the defect."
             }
-        },
-        "rationale": {
-            "type": "string",
-            "description": "Rationale for the identified defects."
         }
     }
     simple_list_key_metric_map = {
@@ -116,11 +112,6 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
             "metric_args": {"box_format": "xyxy", "coords": "absolute", "iou_threshold": 0.5},
             "class_map": {"single_class": 0},
             "key_trace": ["defect_locations"]
-        },
-        "rationale": {
-            "metric_name": SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
-            "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT},
-            "key_trace": ["rationale"]
         }
     }
 
@@ -279,6 +270,14 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                                 "activity": "eating",
                                 "cage_number": 3,
                                 "cage_bounding_box": [0, 0, 2000, 3000]
+                            }, {
+                                "image_description": "There is possibly one chinchilla in the cage.",
+                                "number_of_chinchillas": 0,
+                                "estimated_temperature": 20,
+                                "escaped": False,
+                                "activity": "none",
+                                "cage_number": 2,
+                                "cage_bounding_box": [0, 0, 2000, 2000]
                             }],
                             targets=[{
                                 "image_description": "Two chinchillas are eating in a cage.",
@@ -288,18 +287,26 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                                 "activity": "eating",
                                 "cage_number": 2,
                                 "cage_bounding_box": [0, 0, 2100, 2500]
+                            }, {
+                                "image_description": "There is one sleeping chinchilla in the far corner of the cage.",
+                                "number_of_chinchillas": 1,
+                                "estimated_temperature": 20.5,
+                                "escaped": False,
+                                "activity": "sleeping",
+                                "cage_number": 1,
+                                "cage_bounding_box": [0, 0, 4000, 4000]
                             }])
         report = evaluator.compute()
         self.assertEqual(report["KeyWiseScores"]["image_description"]["F1"], 1.0)
-        self.assertEqual(report["KeyWiseScores"]["number_of_chinchillas"]["F1"], 1.)
-        self.assertEqual(report["KeyWiseScores"]["estimated_temperature"]["F1"], 0.)
+        self.assertEqual(report["KeyWiseScores"]["number_of_chinchillas"]["F1"], 0.5)
+        self.assertEqual(report["KeyWiseScores"]["estimated_temperature"]["F1"], 0.5)
         self.assertEqual(report["KeyWiseScores"]["escaped"].item(), 1.)
-        self.assertEqual(report["KeyWiseScores"]["activity"].item(), 1.)
+        self.assertEqual(report["KeyWiseScores"]["activity"].item(), 0.5)
         self.assertEqual(report["KeyWiseScores"]["cage_number"].item(), 0.)
-        self.assertEqual(report["KeyWiseScores"]["cage_bounding_box"]["F1"], 1.)
+        self.assertEqual(report["KeyWiseScores"]["cage_bounding_box"]["F1"], 0.5)
 
-        self.assertAlmostEqual(report["MicroF1"], 0.7142857142857143)
-        self.assertAlmostEqual(report["MacroF1"], 0.7142857142857143)
+        self.assertAlmostEqual(report["MicroF1"], 0.5714285714285714)
+        self.assertAlmostEqual(report["MacroF1"], 0.5714285714285714)
 
     def test_key_value_pair_extraction_evaluator_simple_list_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.simple_list_schema,
@@ -311,8 +318,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                     self.assertEqual(evaluator.key_metric_map[key][field], self.simple_list_key_metric_map[key][field])
             evaluator.update(predictions=[{
                                 "defect_types": ["scratch", "crack"],
-                                "defect_locations": [[0, 0, 10, 10], [10, 10, 20, 20]],
-                                "rationale": "There are two small shadows in the upper left corner of the image, which appear to be abnormal."
+                                "defect_locations": [[0, 0, 10, 10], [10, 10, 20, 20]]
                             }],
                             targets=[{
                                 "defect_types": ["scratch", "dent"],
@@ -321,10 +327,9 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
             report = evaluator.compute()
             self.assertEqual(report["KeyWiseScores"]["defect_types"].item(), 0.5000)
             self.assertEqual(report["KeyWiseScores"]["defect_locations"]["F1"], 0.5)
-            self.assertEqual(report["KeyWiseScores"]["rationale"]["F1"], 0)
 
             self.assertEqual(report["MicroF1"], 0.5)
-            self.assertAlmostEqual(report["MacroF1"], 0.3333333333333333)
+            self.assertAlmostEqual(report["MacroF1"], 0.5)
 
     def test_key_value_pair_extraction_evaluator_complex_list_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_list_schema,
@@ -417,3 +422,53 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
 
         self.assertAlmostEqual(report["MicroF1"], 0.3333333333333333)
         self.assertAlmostEqual(report["MacroF1"], 0.3333333333333333)
+
+    def test_key_value_pair_extraction_evaluator_prediction_missing_key(self):
+        evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
+                                                endpoint=self.ENDPOINT,
+                                                deployment_name=self.DEPLOYMENT)
+        with self.assertRaises(ValueError) as context:
+            evaluator.update(predictions=[{
+                                "brand_sentiment": {
+                                    "contoso_specific": {
+                                        "sentiment": "very positive",
+                                        "logo_bounding_box": [0, 0, 100, 100]
+                                    }
+                                }
+                            }],
+                            targets=[{
+                                "brand_sentiment": {
+                                    "has_non_contoso_brands": True,
+                                    "contoso_specific": {
+                                        "sentiment": "very positive",
+                                        "logo_bounding_box": [0, 0, 100, 100]
+                                    }
+                                }
+                            }])
+            self.assertEqual(str(context.exception), "The key 'brand_sentiment_has_non_contoso_brands' does not exist in the prediction sample "
+                             "'\"{'brand_sentiment': {'contoso_specific': {'sentiment': 'very positive', 'logo_bounding_box': [0, 0, 100, 100]}}}\"'.")
+
+    def test_key_value_pair_extraction_evaluator_target_missing_key(self):
+        evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
+                                                endpoint=self.ENDPOINT,
+                                                deployment_name=self.DEPLOYMENT)
+        with self.assertRaises(ValueError) as context:
+            evaluator.update(predictions=[{
+                                "brand_sentiment": {
+                                    "has_non_contoso_brands": True,
+                                    "contoso_specific": {
+                                        "sentiment": "very positive",
+                                        "logo_bounding_box": [0, 0, 100, 100]
+                                    }
+                                }
+                            }],
+                            targets=[{
+                                "brand_sentiment": {
+                                    "has_non_contoso_brands": True,
+                                    "contoso_specific": {
+                                        "sentiment": "very positive"
+                                    }
+                                }
+                            }])
+            self.assertEqual(str(context.exception), "The key 'brand_sentiment_contoso_specific_logo_bounding_box' does not exist in the target sample "
+                             "'\"{'brand_sentiment': 'has_non_contoso_brands': True, {'contoso_specific': {'sentiment': 'very positive'}}}\"'.")

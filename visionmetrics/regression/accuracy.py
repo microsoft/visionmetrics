@@ -6,7 +6,7 @@ class MeanAbsoluteErrorF1Score(Metric):
     """
     Calculates and returns a discretized version of the MeanAbsoluteError metric.
     Args:
-        threshold: float indicating the exclusive threshold below which the mean absolute error is considered a true positive.
+        error_threshold: float indicating the exclusive threshold below which the mean absolute error is considered a true positive.
     """
     def __init__(self, error_threshold=1.):
         super().__init__()
