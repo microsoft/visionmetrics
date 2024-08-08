@@ -153,7 +153,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         elif key_schema["type"] == JSONSchemaKeyType.Number or key_schema["type"] == JSONSchemaKeyType.Integer:
             self._assign_key_metric_map_values(key=key,
                                                metric_name=SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score,
-                                               metric_args={})
+                                               metric_args={"error_threshold": 1.0})
             if "enum" in key_schema:
                 class_map = self._get_enum_class_map(key_schema["enum"])
                 self._assign_key_metric_map_values(key=key,
@@ -170,7 +170,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             # Currently only supports class-agnostic detection metrics
             self._assign_key_metric_map_values(key=key,
                                                metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
-                                               metric_args={"box_format": "xyxy", "coords": "absolute"},
+                                               metric_args={"iou_threshold": 0.5, "box_format": "xyxy", "coords": "absolute"},
                                                class_map={"single_class": 0})
         elif key_schema["type"] == JSONSchemaKeyType.Array:
             # For more complex arrays, we default to the caption evaluator
@@ -179,7 +179,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                     # Currently only supports class-agnostic detection metrics
                     self._assign_key_metric_map_values(key=key,
                                                        metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
-                                                       metric_args={"box_format": "xyxy", "coords": "absolute"},
+                                                       metric_args={"iou_threshold": 0.5, "box_format": "xyxy", "coords": "absolute"},
                                                        class_map={"single_class": 0})
                 else:
                     if "enum" in key_schema["items"]:
@@ -232,7 +232,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             if type == JSONSchemaKeyType.BoundingBox:
                 def detection_preprocess(pred, gt):
                     if not isinstance(pred, list) or (isinstance(pred, list) and len(pred) < 4):
-                        return_pred = [[class_map["single_class"]] + [0., 0., 0., 0.]]
+                        return_pred = [[class_map["single_class"]] + [1.0] + [0., 0., 0., 0.]]
                     else:
                         return_pred = [[class_map["single_class"]] + pred] if len(pred) == 5 else [[class_map["single_class"]] + [1.0] + pred]
                     if not isinstance(gt, list) or (isinstance(gt, list) and len(gt) < 4):
@@ -247,14 +247,14 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                     return_gt = []
                     for p in pred:
                         if not isinstance(p, list) or (isinstance(p, list) and len(p) < 4):
-                            return_pred.append([class_map["single_class"]] + [0., 0., 0., 0.])
+                            return_pred.append([class_map["single_class"]] + [1.0] + [0., 0., 0., 0.])
                         else:
                             return_pred.append([class_map["single_class"]] + p if len(p) == 5 else [class_map["single_class"]] + [1.0] + p)
                     for g in gt:
                         if not isinstance(g, list) or (isinstance(g, list) and len(g) < 4):
                             return_gt.append([class_map["single_class"]] + [0., 0., 0., 0.])
                         else:
-                            return_gt.append([class_map["single_class"]] + g if len(g) == 5 else [class_map["single_class"]] + [1.0] + g)
+                            return_gt.append([class_map["single_class"]] + g)
                     return (return_pred, return_gt)
                 self.key_metric_map[key]["preprocessor"] = detection_preprocess
         elif metric_name == SupportedKeyWiseMetric.Regression_MeanAbsoluteError or metric_name == SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score:

@@ -46,13 +46,13 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
             "key_trace": ["image_description"]
         },
         "number_of_chinchillas": {
-            "metric_name": SupportedKeyWiseMetric.Regression_MeanAbsoluteError,
-            "metric_args": {},
+            "metric_name": SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score,
+            "metric_args": {"error_threshold": 1.0},
             "key_trace": ["number_of_chinchillas"]
         },
         "estimated_temperature": {
-            "metric_name": SupportedKeyWiseMetric.Regression_MeanAbsoluteError,
-            "metric_args": {},
+            "metric_name": SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score,
+            "metric_args": {"error_threshold": 1.0},
             "key_trace": ["estimated_temperature"]
         },
         "escaped": {
@@ -74,8 +74,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
             "key_trace": ["cage_number"]
         },
         "cage_bounding_box": {
-            "metric_name": SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
-            "metric_args": {"box_format": "xyxy", "coords": "absolute"},
+            "metric_name": SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
+            "metric_args": {"box_format": "xyxy", "coords": "absolute", "iou_threshold": 0.5},
             "class_map": {"single_class": 0},
             "key_trace": ["cage_bounding_box"]
         }
@@ -112,8 +112,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
             "key_trace": ["defect_types"]
         },
         "defect_locations": {
-            "metric_name": SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
-            "metric_args": {"box_format": "xyxy", "coords": "absolute"},
+            "metric_name": SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
+            "metric_args": {"box_format": "xyxy", "coords": "absolute", "iou_threshold": 0.5},
             "class_map": {"single_class": 0},
             "key_trace": ["defect_locations"]
         },
@@ -255,8 +255,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
             "key_trace": ["brand_sentiment", "contoso_specific", "sentiment"]
         },
         "brand_sentiment_contoso_specific_logo_bounding_box": {
-            "metric_name": SupportedKeyWiseMetric.Detection_MeanAveragePrecision,
-            "metric_args": {"box_format": "xyxy", "coords": "absolute"},
+            "metric_name": SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
+            "metric_args": {"box_format": "xyxy", "coords": "absolute", "iou_threshold": 0.5},
             "class_map": {"single_class": 0},
             "key_trace": ["brand_sentiment", "contoso_specific", "logo_bounding_box"]
         }
@@ -290,13 +290,16 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                                 "cage_bounding_box": [0, 0, 2100, 2500]
                             }])
         report = evaluator.compute()
-        self.assertEqual(report["image_description"]["F1"], 1.0)
-        self.assertEqual(report["number_of_chinchillas"].item(), 0.)
-        self.assertEqual(report["estimated_temperature"].item(), 3.)
-        self.assertEqual(report["escaped"].item(), 1.)
-        self.assertEqual(report["activity"].item(), 1.)
-        self.assertEqual(report["cage_number"].item(), 0.)
-        self.assertEqual(report["cage_bounding_box"]["map_50"].item(), 1.)
+        self.assertEqual(report["KeyWiseScores"]["image_description"]["F1"], 1.0)
+        self.assertEqual(report["KeyWiseScores"]["number_of_chinchillas"]["F1"], 1.)
+        self.assertEqual(report["KeyWiseScores"]["estimated_temperature"]["F1"], 0.)
+        self.assertEqual(report["KeyWiseScores"]["escaped"].item(), 1.)
+        self.assertEqual(report["KeyWiseScores"]["activity"].item(), 1.)
+        self.assertEqual(report["KeyWiseScores"]["cage_number"].item(), 0.)
+        self.assertEqual(report["KeyWiseScores"]["cage_bounding_box"]["F1"], 1.)
+
+        self.assertAlmostEqual(report["MicroF1"], 0.7142857142857143)
+        self.assertAlmostEqual(report["MacroF1"], 0.7142857142857143)
 
     def test_key_value_pair_extraction_evaluator_simple_list_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.simple_list_schema,
@@ -316,9 +319,12 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                                 "defect_locations": [[0, 0, 10, 15], [0, 10, 20, 30]]
                             }])
             report = evaluator.compute()
-            self.assertEqual(report["defect_types"].item(), 0.5000)
-            self.assertAlmostEqual(report["defect_locations"]["map_50"].item(), 0.5049505233764648)
-            self.assertEqual(report["rationale"]["F1"], 0)
+            self.assertEqual(report["KeyWiseScores"]["defect_types"].item(), 0.5000)
+            self.assertEqual(report["KeyWiseScores"]["defect_locations"]["F1"], 0.5)
+            self.assertEqual(report["KeyWiseScores"]["rationale"]["F1"], 0)
+
+            self.assertEqual(report["MicroF1"], 0.5)
+            self.assertAlmostEqual(report["MacroF1"], 0.3333333333333333)
 
     def test_key_value_pair_extraction_evaluator_complex_list_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_list_schema,
@@ -335,7 +341,10 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                                 "defect_types": [{"defect_type": "dent", "defect_location": [0, 0, 20, 20]}]
                             }])
             report = evaluator.compute()
-            self.assertEqual(report["defect_types"]["F1"], 0.0)
+            self.assertEqual(report["KeyWiseScores"]["defect_types"]["F1"], 0.0)
+
+            self.assertEqual(report["MicroF1"], 0.0)
+            self.assertEqual(report["MacroF1"], 0.0)
 
     def test_key_value_pair_extraction_evaluator_simple_object_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.simple_object_schema,
@@ -366,12 +375,15 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                                 }
                             }])
             report = evaluator.compute()
-            self.assertEqual(report["chart_type"].item(), 1.0)
-            self.assertEqual(report["chart_title"]["F1"], 1.0)
-            self.assertEqual(report["chart_axes_x_axis_title"]["F1"], 1.0)
-            self.assertEqual(report["chart_axes_y_axis_title"]["F1"], 1.0)
-            self.assertEqual(report["chart_axes_x_axis_units"]["F1"], 1.0)
-            self.assertEqual(report["chart_axes_y_axis_units"]["F1"], 1.0)
+            self.assertEqual(report["KeyWiseScores"]["chart_type"].item(), 1.0)
+            self.assertEqual(report["KeyWiseScores"]["chart_title"]["F1"], 1.0)
+            self.assertEqual(report["KeyWiseScores"]["chart_axes_x_axis_title"]["F1"], 1.0)
+            self.assertEqual(report["KeyWiseScores"]["chart_axes_y_axis_title"]["F1"], 1.0)
+            self.assertEqual(report["KeyWiseScores"]["chart_axes_x_axis_units"]["F1"], 1.0)
+            self.assertEqual(report["KeyWiseScores"]["chart_axes_y_axis_units"]["F1"], 1.0)
+
+            self.assertEqual(report["MicroF1"], 1.0)
+            self.assertEqual(report["MacroF1"], 1.0)
 
     def test_key_value_pair_extraction_evaluator_nested_object_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
@@ -399,6 +411,9 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                             }
                         }])
         report = evaluator.compute()
-        self.assertEqual(report["brand_sentiment_has_non_contoso_brands"].item(), 1.)
-        self.assertEqual(report["brand_sentiment_contoso_specific_sentiment"].item(), 0.)
-        self.assertEqual(report["brand_sentiment_contoso_specific_logo_bounding_box"]["map_50"].item(), 0.)
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_has_non_contoso_brands"].item(), 1.)
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_contoso_specific_sentiment"].item(), 0.)
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_contoso_specific_logo_bounding_box"]["F1"], 0.)
+
+        self.assertAlmostEqual(report["MicroF1"], 0.3333333333333333)
+        self.assertAlmostEqual(report["MacroF1"], 0.3333333333333333)

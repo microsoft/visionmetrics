@@ -176,8 +176,13 @@ class DetectionMicroPrecisionRecallF1(DetectionConfusionMatrix):
         iou_threshold: float between [0.0, 1.0] inclusive indicating the threshold (exclusive) of overlap between predicted and ground truth bounding boxes
         above which a detection is considered a true positive.
     """
-    def __init__(self, iou_threshold=0.5):
+    def __init__(self, iou_threshold=0.5, box_format='xyxy', coords='relative'):
         super().__init__(iou_threshold=iou_threshold)
+        # TODO: add support for other box formats
+        if box_format != 'xyxy':
+            raise ValueError(f'Expected box format to be "xyxy", got {box_format}')
+        self.box_format = box_format
+        self.coords = coords
 
     def compute(self):
         tp = self.tp.item()
