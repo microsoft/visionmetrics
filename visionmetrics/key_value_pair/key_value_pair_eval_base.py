@@ -106,6 +106,8 @@ class KeyValuePairEvaluatorBase(Metric):
             except KeyError:
                 raise ValueError(f"Each value in key_metric_map must be a dictionary with a 'metric_name' key for a supported metric in visionmetrics of the form <task_name>.<metric_name>"
                                  f" and a 'metric_args' key for a dictionary of arguments to pass to the initialization function of that metric. Key '{key}' does not satisfy this rule.")
+            if isinstance(metric_name, SupportedKeyWiseMetric):
+                metric_name = metric_name.value
             if metric_name not in SUPPORTED_KEY_WISE_METRICS:
                 raise ValueError(f"Metric '{key_metric_map[key]['metric_name']}' is not supported. "
                                  f"Each key's metric must be among the supported metrics: {', '.join(SUPPORTED_KEY_WISE_METRICS)}.")
