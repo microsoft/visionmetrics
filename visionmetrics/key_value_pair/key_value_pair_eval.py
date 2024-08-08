@@ -152,15 +152,16 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                                                    metric_args={"num_classes": len(class_map), "average": "micro"},
                                                    class_map=class_map)
         elif key_schema["type"] == JSONSchemaKeyType.Number or key_schema["type"] == JSONSchemaKeyType.Integer:
-            self._assign_key_metric_map_values(key=key,
-                                               metric_name=SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score,
-                                               metric_args={"error_threshold": 1.0})
             if "enum" in key_schema:
                 class_map = self._get_enum_class_map(key_schema["enum"])
                 self._assign_key_metric_map_values(key=key,
                                                    metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
                                                    metric_args={"num_classes": len(class_map), "average": "micro"},
                                                    class_map=class_map)
+            else:
+                self._assign_key_metric_map_values(key=key,
+                                                   metric_name=SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score,
+                                                   metric_args={"error_threshold": 1.0})
         elif key_schema["type"] == JSONSchemaKeyType.Boolean:
             class_map = self._get_enum_class_map([True, False])
             self._assign_key_metric_map_values(key=key,
@@ -185,9 +186,9 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                 elif "enum" in key_schema["items"]:
                     class_map = self._get_enum_class_map(key_schema["items"]["enum"])
                     self._assign_key_metric_map_values(key=key,
-                                                        metric_name=SupportedKeyWiseMetric.Classification_MultilabelF1,
-                                                        metric_args={"num_labels": len(class_map), "average": "micro"},
-                                                        class_map=class_map)
+                                                       metric_name=SupportedKeyWiseMetric.Classification_MultilabelF1,
+                                                       metric_args={"num_labels": len(class_map), "average": "micro"},
+                                                       class_map=class_map)
         elif key_schema["type"] == JSONSchemaKeyType.Object:
             for subkey in key_schema["properties"]:
                 subkey_name = f"{key}_{subkey}"
