@@ -83,7 +83,8 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
 
         endpoint: string of the Azure OpenAI endpoint to be used as the default text evaluator.
         deployment_name: string of the Azure OpenAI deployment name to be used for the default text evaluator.
-        The latter two arguments follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel.
+        The latter two arguments follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel;
+        see https://github.com/microsoft/irisml-tasks-azure-openai/blob/main/irisml/tasks/create_azure_openai_chat_model.py.
     """
     def __init__(self, key_value_pair_schema: dict, endpoint: str, deployment_name: str):
         if not isinstance(key_value_pair_schema, dict):
@@ -181,13 +182,12 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                                                        metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
                                                        metric_args={"iou_threshold": 0.5, "box_format": "xyxy", "coords": "absolute"},
                                                        class_map={"single_class": 0})
-                else:
-                    if "enum" in key_schema["items"]:
-                        class_map = self._get_enum_class_map(key_schema["items"]["enum"])
-                        self._assign_key_metric_map_values(key=key,
-                                                           metric_name=SupportedKeyWiseMetric.Classification_MultilabelF1,
-                                                           metric_args={"num_labels": len(class_map), "average": "micro"},
-                                                           class_map=class_map)
+                elif "enum" in key_schema["items"]:
+                    class_map = self._get_enum_class_map(key_schema["items"]["enum"])
+                    self._assign_key_metric_map_values(key=key,
+                                                        metric_name=SupportedKeyWiseMetric.Classification_MultilabelF1,
+                                                        metric_args={"num_labels": len(class_map), "average": "micro"},
+                                                        class_map=class_map)
         elif key_schema["type"] == JSONSchemaKeyType.Object:
             for subkey in key_schema["properties"]:
                 subkey_name = f"{key}_{subkey}"

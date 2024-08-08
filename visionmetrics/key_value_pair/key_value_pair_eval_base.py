@@ -124,9 +124,9 @@ class KeyValuePairEvaluatorBase(Metric):
         """
         for key, metric in self.key_evaluator_map.items():
             metric_name = self.key_metric_map[key]["metric_name"]
+            key_trace = self.key_metric_map[key]["key_trace"]
             key_predictions = []
             key_targets = []
-            key_trace = self.key_metric_map[key]["key_trace"]
             for prediction, target in zip(predictions, targets):
                 # Use the key trace to traverse the prediction and target objects to get the values for these keys
                 try:

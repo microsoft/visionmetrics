@@ -52,7 +52,8 @@ class AzureOpenAITextModelCategoricalScore(AzureOpenAITextModelCategoricalEvalua
         negative_value: indicates the value (e.g., None, 'null', 0, '', []) for which predicted and target values are considered null. Note that the evaluator strictly requires
                         an exact match for either a prediction or target to be considered negative.
 
-        Other parameters follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel.
+        Other parameters follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel;
+        see https://github.com/microsoft/irisml-tasks-azure-openai/blob/main/irisml/tasks/create_azure_openai_chat_model.py.
     """
     def __init__(self, endpoint: str, deployment_name: str, system_message=DEFAULT_SYSTEM_MESSAGE, prompt_template=DEFAULT_PROMPT_TEMPLATE,
                  temperature=0.0, max_tokens=50, positive_threshold=0.5, negative_value=''):

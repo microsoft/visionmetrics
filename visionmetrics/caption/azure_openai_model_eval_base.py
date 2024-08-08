@@ -41,7 +41,8 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
                         an exact match for either a prediction or target to be considered negative. TODO: Implement fuzzy negative matching. Scores are always computed so they
                         can be used for average_score computation.
 
-        Other parameters follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel.
+        Other parameters follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel;
+        see https://github.com/microsoft/irisml-tasks-azure-openai/blob/main/irisml/tasks/create_azure_openai_chat_model.py.
     """
     def __init__(self, endpoint: str, deployment_name: str, system_message: str, prompt_template: str,
                  temperature=0.0, max_tokens=50, requests_interval=30, num_responses=1, positive_threshold=0.5, negative_value=''):
