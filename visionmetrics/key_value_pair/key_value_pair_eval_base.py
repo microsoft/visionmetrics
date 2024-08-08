@@ -31,6 +31,9 @@ SUPPORTED_F1_METRICS = [
     SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
     SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score
 ]
+METRICS_WITH_TENSOR_INPUT = [SupportedKeyWiseMetric.Classification_MulticlassAccuracy, SupportedKeyWiseMetric.Classification_MulticlassF1,
+                             SupportedKeyWiseMetric.Classification_MultilabelAccuracy, SupportedKeyWiseMetric.Classification_MultilabelF1,
+                             SupportedKeyWiseMetric.Regression_MeanAbsoluteError, SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score]
 
 
 class KeyValuePairEvaluatorBase(Metric):
@@ -119,20 +122,20 @@ class KeyValuePairEvaluatorBase(Metric):
         Both predictions and targets should be dictionaries of the form {'<key>': <value>}, where <value> is in the format expected for the respective metric for that key.
         Each sample in predictions and targets must have the same keys (though they do not have to have all the keys in the dataset).
         """
-        for key in self.key_evaluator_map:
-            metric = self.key_evaluator_map[key]
+        for key, metric in self.key_evaluator_map.items():
             metric_name = self.key_metric_map[key]["metric_name"]
             key_predictions = []
             key_targets = []
+            key_trace = self.key_metric_map[key]["key_trace"]
             for prediction, target in zip(predictions, targets):
                 # Use the key trace to traverse the prediction and target objects to get the values for these keys
                 try:
-                    key_prediction = reduce(operator.getitem, self.key_metric_map[key]["key_trace"], prediction)
+                    key_prediction = reduce(operator.getitem, key_trace, prediction)
                 except KeyError:
                     logger.debug(f"No prediction exists in this sample for key '{key}'.")
                     continue
                 try:
-                    key_target = reduce(operator.getitem, self.key_metric_map[key]["key_trace"], target)
+                    key_target = reduce(operator.getitem, key_trace, target)
                 except KeyError:
                     logger.debug(f"No target exists in this sample for key '{key}'.")
                     continue
@@ -147,9 +150,7 @@ class KeyValuePairEvaluatorBase(Metric):
                     logger.debug(f"Encountered error {repr(e)} when preprocessing prediction '{key_prediction}' and target '{key_target}' for key '{key}' to the metric's expected format.")
 
             # Convert lists to tensors for metrics that expect torch tensors
-            if metric_name in [SupportedKeyWiseMetric.Classification_MulticlassAccuracy, SupportedKeyWiseMetric.Classification_MulticlassF1,
-                               SupportedKeyWiseMetric.Classification_MultilabelAccuracy, SupportedKeyWiseMetric.Classification_MultilabelF1,
-                               SupportedKeyWiseMetric.Regression_MeanAbsoluteError, SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score]:
+            if metric_name in METRICS_WITH_TENSOR_INPUT:
                 key_predictions = torch.tensor(key_predictions)
                 key_targets = torch.tensor(key_targets)
 
