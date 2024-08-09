@@ -17,6 +17,7 @@ MULTIPLE_RESPONSES_DELIMITER = "<|delimiter|>"
 
 # Evaluator separator constants for joining multiple ground truth values
 OR_SEPARATOR = " <|OR|> "
+AND_SEPARATOR = " <|AND|> "
 
 
 # Enum for per-value result status type
@@ -40,7 +41,8 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
                         an exact match for either a prediction or target to be considered negative. TODO: Implement fuzzy negative matching. Scores are always computed so they
                         can be used for average_score computation.
 
-        Other parameters follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel.
+        Other parameters follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel;
+        see https://github.com/microsoft/irisml-tasks-azure-openai/blob/main/irisml/tasks/create_azure_openai_chat_model.py.
     """
     def __init__(self, endpoint: str, deployment_name: str, system_message: str, prompt_template: str,
                  temperature=0.0, max_tokens=50, requests_interval=30, num_responses=1, positive_threshold=0.5, negative_value=''):
@@ -82,8 +84,9 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
             logger.debug(f"Failed to parse raw_score \"{raw_score}\" to numeric value; returning 0.")
         return score
 
-    def update(self, predictions, targets):
-        """ Evaluate list of predicted results using OpenAI text model.
+    def update(self, predictions, targets, multi_target_separator=AND_SEPARATOR):
+        """
+        Evaluate list of predicted results using Azure OpenAI text model.
         Args:
             predictions: list of string predictions [text1, text2, ...], shape: (N, ), type: string
             targets: list of one or more string ground truth values: [[gt1, gt2, ...], [gt1, gt2, ...], ...], type: string
@@ -98,7 +101,7 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
 
         for prediction, target in zip(predictions, targets):
             prompt = self.prompt_template.replace(PREDICTION_PLACEHOLDER, prediction)
-            final_target = OR_SEPARATOR.join(target)
+            final_target = multi_target_separator.join(target)
             prompt = prompt.replace(TARGET_PLACEHOLDER, final_target)
 
             if prediction == target:
@@ -146,7 +149,7 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
         try:
             f1 = (2 * precision * recall) / (precision + recall)
         except ZeroDivisionError:
-            f1 = 0
+            f1 = 0.
         try:
             accuracy = tp + tn / (tp + tn + fn + fp_gt_null + fp_gt_not_null)
         except ZeroDivisionError:
