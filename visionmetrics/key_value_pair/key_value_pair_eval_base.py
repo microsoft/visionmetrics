@@ -146,6 +146,8 @@ class KeyValuePairEvaluatorBase(Metric):
             if target_invalid_keys:
                 raise ValueError(f"The target sample '{target}' has at least one invalid key not present in the schema: {', '.join(target_invalid_keys)}.")
             self._get_invalid_keys(sample=prediction, invalid_keys=self.invalid_predicted_keys)
+        if len(self.invalid_predicted_keys) > 0:
+            logger.debug(f"Invalid keys were present in the predictions in this update: {', '.join(self.invalid_predicted_keys)}.")
 
         for key, metric in self.key_evaluator_map.items():
             metric_name = self.key_metric_map[key]["metric_name"]
@@ -169,7 +171,8 @@ class KeyValuePairEvaluatorBase(Metric):
                     key_prediction_formatted = prediction_preprocessor(key_prediction)
                     key_predictions.append(key_prediction_formatted)
                 except ValueError as e:
-                    logger.debug(f"Encountered error {repr(e)} when preprocessing prediction '{key_prediction}' for key '{key}' to the '{self.key_metric_map[key]['metric_name']}' metric's expected format.")
+                    logger.debug(f"Encountered error {repr(e)} when preprocessing prediction '{key_prediction}' for key '{key}' to the '{self.key_metric_map[key]['metric_name']}' metric's"
+                                 " expected format.")
                 try:
                     target_preprocessor = self.key_metric_map[key]["target_preprocessor"]
                     key_target_formatted = target_preprocessor(key_target)

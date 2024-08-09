@@ -194,8 +194,8 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         if key not in self.key_metric_map and key_schema["type"] != JSONSchemaKeyType.Object:
             # Use text as the default metric for all keys; 'object' key type should not have its own key
             self._assign_key_metric_map_values(key=key,
-                                            metric_name=SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
-                                            metric_args={"endpoint": self.endpoint, "deployment_name": self.deployment_name})
+                                               metric_name=SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
+                                               metric_args={"endpoint": self.endpoint, "deployment_name": self.deployment_name})
             logger.debug(f"Using default metric '{SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore.value}' for key '{key}'.")
 
         if key in self.key_metric_map:
@@ -239,6 +239,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                     else:
                         return_pred = [[class_map["single_class"]] + value] if len(value) == 5 else [[class_map["single_class"]] + [1.0] + value]
                     return return_pred
+
                 def detection_preprocess_target(value):
                     if not isinstance(value, list) or (isinstance(value, list) and len(value) < 4):
                         return_gt = [[class_map["single_class"]] + [0., 0., 0., 0.]]
@@ -256,6 +257,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                         else:
                             return_pred.append([class_map["single_class"]] + v if len(v) == 5 else [class_map["single_class"]] + [1.0] + v)
                     return return_pred
+
                 def detection_list_preprocess_target(value):
                     return_gt = []
                     for v in value:
