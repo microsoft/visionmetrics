@@ -254,7 +254,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     }
 
     # In each unit test, we don"t unit test the preprocessor name explicitly because we will test it implicitly via the "update" function call tests.
-    def test_key_value_pair_extraction_evaluator_simple_schema(self):
+    def test_two_images_simple_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.simple_schema,
                                                 endpoint=self.ENDPOINT,
                                                 deployment_name=self.DEPLOYMENT)
@@ -308,7 +308,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
         self.assertAlmostEqual(report["MicroF1"], 0.5714285714285714)
         self.assertAlmostEqual(report["MacroF1"], 0.5714285714285714)
 
-    def test_key_value_pair_extraction_evaluator_simple_list_schema(self):
+    def test_simple_list_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.simple_list_schema,
                                                 endpoint=self.ENDPOINT,
                                                 deployment_name=self.DEPLOYMENT)
@@ -331,7 +331,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
             self.assertEqual(report["MicroF1"], 0.5)
             self.assertAlmostEqual(report["MacroF1"], 0.5)
 
-    def test_key_value_pair_extraction_evaluator_complex_list_schema(self):
+    def test_complex_list_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_list_schema,
                                                 endpoint=self.ENDPOINT,
                                                 deployment_name=self.DEPLOYMENT)
@@ -351,7 +351,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
             self.assertEqual(report["MicroF1"], 0.0)
             self.assertEqual(report["MacroF1"], 0.0)
 
-    def test_key_value_pair_extraction_evaluator_simple_object_schema(self):
+    def test_simple_object_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.simple_object_schema,
                                                 endpoint=self.ENDPOINT,
                                                 deployment_name=self.DEPLOYMENT)
@@ -390,7 +390,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
             self.assertEqual(report["MicroF1"], 1.0)
             self.assertEqual(report["MacroF1"], 1.0)
 
-    def test_key_value_pair_extraction_evaluator_nested_object_schema(self):
+    def test_nested_object_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
                                                 deployment_name=self.DEPLOYMENT)
@@ -423,7 +423,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
         self.assertAlmostEqual(report["MicroF1"], 0.3333333333333333)
         self.assertAlmostEqual(report["MacroF1"], 0.3333333333333333)
 
-    def test_key_value_pair_extraction_evaluator_prediction_missing_key(self):
+    def test_prediction_missing_key(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
                                                 deployment_name=self.DEPLOYMENT)
@@ -450,7 +450,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                                 }]
                                )
 
-    def test_key_value_pair_extraction_evaluator_target_missing_key(self):
+    def test_target_missing_key(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
                                                 deployment_name=self.DEPLOYMENT)
@@ -477,7 +477,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                                 }]
                                )
 
-    def test_key_value_pair_extraction_evaluator_prediction_invalid_keys(self):
+    def test_prediction_invalid_keys(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
                                                 deployment_name=self.DEPLOYMENT)
@@ -509,7 +509,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
         self.assertAlmostEqual(report["MicroF1"], 0.75)
         self.assertAlmostEqual(report["MacroF1"], 1.0)
 
-    def test_key_value_pair_extraction_evaluator_target_invalid_keys(self):
+    def test_target_invalid_keys(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
                                                 deployment_name=self.DEPLOYMENT)
@@ -539,3 +539,231 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                                     }
                                 }]
                                )
+
+    def test_two_images_nested_object_schema(self):
+        evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
+                                                endpoint=self.ENDPOINT,
+                                                deployment_name=self.DEPLOYMENT)
+        for key in self.complex_object_key_metric_map:
+            for field in self.complex_object_key_metric_map[key]:
+                self.assertEqual(evaluator.key_metric_map[key][field], self.complex_object_key_metric_map[key][field])
+        evaluator.update(predictions=[{
+                            "brand_sentiment": {
+                                "has_non_contoso_brands": True,
+                                "contoso_specific": {
+                                    "sentiment": "somewhat positive",
+                                    "logo_bounding_box": [0, 0, 100, 100]
+                                }
+                            }
+                        },
+                        {
+                            "brand_sentiment": {
+                                "has_non_contoso_brands": False,
+                                "contoso_specific": {
+                                    "sentiment": "very positive",
+                                    "logo_bounding_box": [20, 20, 20, 20]
+                                }
+                            }
+                        }],
+                        targets=[{
+                            "brand_sentiment": {
+                                "has_non_contoso_brands": True,
+                                "contoso_specific": {
+                                    "sentiment": "somewhat positive",
+                                    "logo_bounding_box": [0, 0, 100, 100]
+                                }
+                            }
+                        },
+                        {
+                            "brand_sentiment": {
+                                "has_non_contoso_brands": False,
+                                "contoso_specific": {
+                                    "sentiment": "very positive",
+                                    "logo_bounding_box": [20, 20, 20, 20]
+                                }
+                            }
+                        }])
+        report = evaluator.compute()
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_has_non_contoso_brands"].item(), 1.)
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_contoso_specific_sentiment"].item(), 1.)
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_contoso_specific_logo_bounding_box"]["F1"], 1.)
+
+        self.assertAlmostEqual(report["MicroF1"], 1.0)
+        self.assertAlmostEqual(report["MacroF1"], 1.0)
+
+    def test_two_images_prediction_invalid_keys(self):
+        evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
+                                                endpoint=self.ENDPOINT,
+                                                deployment_name=self.DEPLOYMENT)
+        for key in self.complex_object_key_metric_map:
+            for field in self.complex_object_key_metric_map[key]:
+                self.assertEqual(evaluator.key_metric_map[key][field], self.complex_object_key_metric_map[key][field])
+        evaluator.update(predictions=[{
+                            "brand_sentiment": {
+                                "has_non_contoso_brands": True,
+                                "contoso_specific": {
+                                    "sentiment": "somewhat positive",
+                                    "invalid_key_1": None,
+                                    "logo_bounding_box": [0, 0, 100, 100]
+                                },
+                                "invalid_key_2": None
+                            }
+                        }, {
+                            "brand_sentiment": {
+                                "invalid_key_3": None,
+                                "has_non_contoso_brands": False,
+                                "contoso_specific": {
+                                    "sentiment": "very positive",
+                                    "logo_bounding_box": [20, 20, 20, 20],
+                                    "invalid_key_4": None
+                                }
+                            },
+                            "invalid_key_5": None
+                        }],
+                        targets=[{
+                            "brand_sentiment": {
+                                "has_non_contoso_brands": True,
+                                "contoso_specific": {
+                                    "sentiment": "somewhat positive",
+                                    "logo_bounding_box": [0, 0, 100, 100]
+                                }
+                            }
+                        }, {
+                            "brand_sentiment": {
+                                "has_non_contoso_brands": False,
+                                "contoso_specific": {
+                                    "sentiment": "very positive",
+                                    "logo_bounding_box": [20, 20, 20, 20]
+                                }
+                            }
+                        }])
+        report = evaluator.compute()
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_has_non_contoso_brands"].item(), 1.)
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_contoso_specific_sentiment"].item(), 1.)
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_contoso_specific_logo_bounding_box"]["F1"], 1.)
+
+        self.assertAlmostEqual(report["MicroF1"], 0.7058823529411765)
+        self.assertAlmostEqual(report["MacroF1"], 1.0)
+
+    def test_two_images_prediction_wrong_invalid_keys(self):
+        evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
+                                                endpoint=self.ENDPOINT,
+                                                deployment_name=self.DEPLOYMENT)
+        for key in self.complex_object_key_metric_map:
+            for field in self.complex_object_key_metric_map[key]:
+                self.assertEqual(evaluator.key_metric_map[key][field], self.complex_object_key_metric_map[key][field])
+        evaluator.update(predictions=[{
+                            "brand_sentiment": {
+                                "has_non_contoso_brands": True,
+                                "contoso_specific": {
+                                    "sentiment": "somewhat positive",
+                                    "invalid_key_1": None,
+                                    "logo_bounding_box": [0, 0, 100, 100]
+                                },
+                                "invalid_key_2": None
+                            }
+                        }, {
+                            "brand_sentiment": {
+                                "has_non_contoso_brands": True,
+                                "contoso_specific": {
+                                    "sentiment": "somewhat positive",
+                                    "logo_bounding_box": [20, 20, 40, 40]
+                                }
+                            }
+                        }],
+                        targets=[{
+                            "brand_sentiment": {
+                                "has_non_contoso_brands": True,
+                                "contoso_specific": {
+                                    "sentiment": "very positive",
+                                    "logo_bounding_box": [0, 0, 100, 100]
+                                }
+                            }
+                        }, {
+                            "brand_sentiment": {
+                                "has_non_contoso_brands": False,
+                                "contoso_specific": {
+                                    "sentiment": "very positive",
+                                    "logo_bounding_box": [20, 20, 40, 40]
+                                }
+                            }
+                        }])
+        report = evaluator.compute()
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_has_non_contoso_brands"].item(), 0.5)
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_contoso_specific_sentiment"].item(), 0.0)
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_contoso_specific_logo_bounding_box"]["F1"], 1.0)
+
+        self.assertAlmostEqual(report["MicroF1"], 0.42857142857142855)
+        self.assertAlmostEqual(report["MacroF1"], 0.5)
+
+    def test_simple_schema_batch_update(self):
+        evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.simple_schema,
+                                                endpoint=self.ENDPOINT,
+                                                deployment_name=self.DEPLOYMENT)
+        with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["1.0"]):
+            for key in self.simple_key_metric_map:
+                for field in self.simple_key_metric_map[key]:
+                    self.assertEqual(evaluator.key_metric_map[key][field], self.simple_key_metric_map[key][field])
+            evaluator.update(predictions=[{
+                                "image_description": "Two chinchillas eating.",
+                                "number_of_chinchillas": 2,
+                                "estimated_temperature": 21,
+                                "escaped": False,
+                                "activity": "eating",
+                                "cage_number": 3,
+                                "cage_bounding_box": [0, 0, 2000, 3000]
+                            }],
+                            targets=[{
+                                "image_description": "Two chinchillas are eating in a cage.",
+                                "number_of_chinchillas": 2,
+                                "estimated_temperature": 24,
+                                "escaped": False,
+                                "activity": "eating",
+                                "cage_number": 2,
+                                "cage_bounding_box": [0, 0, 2100, 2500]
+                            }])
+            report = evaluator.compute()
+            self.assertEqual(report["KeyWiseScores"]["image_description"]["F1"], 1.0)
+            self.assertEqual(report["KeyWiseScores"]["number_of_chinchillas"]["F1"], 1.0)
+            self.assertEqual(report["KeyWiseScores"]["estimated_temperature"]["F1"], 0.0)
+            self.assertEqual(report["KeyWiseScores"]["escaped"].item(), 1.0)
+            self.assertEqual(report["KeyWiseScores"]["activity"].item(), 1.0)
+            self.assertEqual(report["KeyWiseScores"]["cage_number"].item(), 0.0)
+            self.assertEqual(report["KeyWiseScores"]["cage_bounding_box"]["F1"], 1.0)
+
+            self.assertAlmostEqual(report["MicroF1"], 0.7142857142857143)
+            self.assertAlmostEqual(report["MacroF1"], 0.7142857142857143)
+
+            evaluator.update(predictions=[{
+                                "image_description": "There is possibly one chinchilla in the cage.",
+                                "number_of_chinchillas": 0,
+                                "estimated_temperature": 20,
+                                "escaped": False,
+                                "activity": "none",
+                                "cage_number": 2,
+                                "cage_bounding_box": [0, 0, 2000, 2000]
+                            }],
+                            targets=[{
+                                "image_description": "There is one sleeping chinchilla in the far corner of the cage.",
+                                "number_of_chinchillas": 1,
+                                "estimated_temperature": 20.5,
+                                "escaped": False,
+                                "activity": "sleeping",
+                                "cage_number": 1,
+                                "cage_bounding_box": [0, 0, 4000, 4000]
+                            }])
+        report = evaluator.compute()
+        self.assertEqual(report["KeyWiseScores"]["image_description"]["F1"], 1.0)
+        self.assertEqual(report["KeyWiseScores"]["number_of_chinchillas"]["F1"], 0.5)
+        self.assertEqual(report["KeyWiseScores"]["estimated_temperature"]["F1"], 0.5)
+        self.assertEqual(report["KeyWiseScores"]["escaped"].item(), 1.)
+        self.assertEqual(report["KeyWiseScores"]["activity"].item(), 0.5)
+        self.assertEqual(report["KeyWiseScores"]["cage_number"].item(), 0.)
+        self.assertEqual(report["KeyWiseScores"]["cage_bounding_box"]["F1"], 0.5)
+
+        self.assertAlmostEqual(report["MicroF1"], 0.5714285714285714)
+        self.assertAlmostEqual(report["MacroF1"], 0.5714285714285714)
+
+
+if __name__ == '__main__':
+    unittest.main()

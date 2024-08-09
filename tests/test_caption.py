@@ -3,8 +3,7 @@ import json
 import pathlib
 import unittest
 
-from visionmetrics.caption import BleuScore, CIDErScore, METEORScore, ROUGELScore
-from visionmetrics.caption.azure_openai_model_eval import AzureOpenAITextModelCategoricalScore
+from visionmetrics.caption import BleuScore, CIDErScore, METEORScore, ROUGELScore, AzureOpenAITextModelCategoricalScore
 from visionmetrics.caption.azure_openai_model_eval_base import ResultStatusType
 
 

@@ -4,7 +4,8 @@ import torch
 
 from visionmetrics.detection import (ClassAgnosticAveragePrecision,
                                      DetectionConfusionMatrix,
-                                     MeanAveragePrecision)
+                                     MeanAveragePrecision,
+                                     DetectionMicroPrecisionRecallF1)
 
 
 class TestMeanAveragePrecision(unittest.TestCase):
@@ -479,6 +480,97 @@ class TestDetectionConfusionMatrix(unittest.TestCase):
         self.assertEqual(result['FP_due_to_low_iou_correct_class'], 0)
         self.assertEqual(result['FP_due_to_low_iou_wrong_class'], 0)
         self.assertEqual(result['FP_due_to_extra_pred_boxes'], 0)
+
+    def test_two_images_zero_area_box(self):
+        predictions = [[[1, 1.0, 0, 0, 100, 100]], [[1, 1.0, 20, 20, 20, 20]]]
+        targets = [[[1, 0, 0, 100, 100]], [[1, 20, 20, 20, 20]]]
+
+        metric = DetectionConfusionMatrix(iou_threshold=0.5)
+        metric.update(predictions, targets)
+        result = metric.compute()
+
+        self.assertEqual(result['TP'], 2)
+        self.assertEqual(result['FP'], 0)
+        self.assertEqual(result['FN'], 0)
+        self.assertEqual(result['FP_due_to_wrong_class'], 0)
+        self.assertEqual(result['FP_due_to_low_iou_correct_class'], 0)
+        self.assertEqual(result['FP_due_to_low_iou_wrong_class'], 0)
+        self.assertEqual(result['FP_due_to_extra_pred_boxes'], 0)
+
+
+class TestDetectionMicroPrecisionRecallF1(unittest.TestCase):
+    # We include a subset of cases here since the underlying logic is inherited from DetectionConfusionMatrix.
+    def test_true_positive(self):
+        predictions = [[[0, 1.0, 0, 0, 1, 1]], [[1, 1.0, 0, 0, 1, 1]]]
+        targets = [[[0, 0, 0, 1, 1]], [[1, 0, 0, 1, 1]]]
+
+        metric = DetectionMicroPrecisionRecallF1(iou_threshold=0.5)
+        metric.update(predictions, targets)
+        result = metric.compute()
+
+        self.assertEqual(result['Precision'], 1.0)
+        self.assertEqual(result['Recall'], 1.0)
+        self.assertEqual(result['F1'], 1.0)
+
+    def test_false_positive_wrong_class(self):
+        predictions = [[[0, 1.0, 0, 0, 1, 1]], [[1, 1.0, 0, 0, 1, 1]]]
+        targets = [[[0, 0, 0, 1, 1]], [[0, 0, 0, 1, 1]]]
+
+        metric = DetectionMicroPrecisionRecallF1(iou_threshold=0.5)
+        metric.update(predictions, targets)
+        result = metric.compute()
+
+        self.assertEqual(result['Precision'], 0.5)
+        self.assertEqual(result['Recall'], 0.5)
+        self.assertEqual(result['F1'], 0.5)
+
+    def test_false_negative(self):
+        predictions = [[[0, 1.0, 0, 0, 1, 1]]]
+        targets = [[[0, 0, 0, 1, 1], [1, 0, 0, 1, 1]]]
+
+        metric = DetectionMicroPrecisionRecallF1(iou_threshold=0.5)
+        metric.update(predictions, targets)
+        result = metric.compute()
+
+        self.assertEqual(result['Precision'], 1.0)
+        self.assertEqual(result['Recall'], 0.5)
+        self.assertEqual(result['F1'], 0.6666666666666666)
+
+    def test_empty_predictions(self):
+        predictions = [[[]]]
+        targets = [[[0, 0, 0, 1, 1]]]
+
+        metric = DetectionMicroPrecisionRecallF1(iou_threshold=0.5)
+        metric.update(predictions, targets)
+        result = metric.compute()
+
+        self.assertEqual(result['Precision'], 0.0)
+        self.assertEqual(result['Recall'], 0.0)
+        self.assertEqual(result['F1'], 0.0)
+
+    def test_empty_targets(self):
+        predictions = [[[0, 1.0, 0, 0, 1, 1]]]
+        targets = [[]]
+
+        metric = DetectionMicroPrecisionRecallF1(iou_threshold=0.5)
+        metric.update(predictions, targets)
+        result = metric.compute()
+
+        self.assertEqual(result['Precision'], 0.0)
+        self.assertEqual(result['Recall'], 0.0)
+        self.assertEqual(result['F1'], 0.0)
+
+    def test_two_images_extra_preds(self):
+        predictions = [[[0, 1.0, 0, 0, 1, 1], [1, 1.0, 0, 0, 1, 1]], [[1, 1.0, 0, 0, 1, 1]]]
+        targets = [[[0, 0, 0, 1, 1]], [[1, 0, 0, 1, 1]]]
+
+        metric = DetectionMicroPrecisionRecallF1(iou_threshold=0.5)
+        metric.update(predictions, targets)
+        result = metric.compute()
+
+        self.assertEqual(result['Precision'], 0.6666666666666666)
+        self.assertEqual(result['Recall'], 1.0)
+        self.assertEqual(result['F1'], 0.8)
 
 
 if __name__ == '__main__':

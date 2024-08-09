@@ -147,6 +147,9 @@ class DetectionConfusionMatrix(Metric):
         float
             in [0, 1]
         """
+        if box1 == box2:
+            return 1.
+
         x1_min, y1_min, x1_max, y1_max = box1
         x2_min, y2_min, x2_max, y2_max = box2
 
