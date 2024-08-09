@@ -210,54 +210,59 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         metric_name = self.key_metric_map[key]["metric_name"]
         if metric_name == SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore:
             # Expects list of strings for predictions, list of list of strings for targets
-            self.key_metric_map[key]["preprocessor"] = lambda pred, gt: (str(pred), [str(gt)])
+            self.key_metric_map[key]["prediction_preprocessor"] = lambda value: str(value)
+            self.key_metric_map[key]["target_preprocessor"] = lambda value: [str(value)]
         elif metric_name == SupportedKeyWiseMetric.Classification_MulticlassAccuracy or metric_name == SupportedKeyWiseMetric.Classification_MulticlassF1:
             # Expects torch int or float tensor of shape (N, ...) or (N, C, ...) for predictions, torch tensor of shape (N, ...) for targets
             class_map = self.key_metric_map[key]["class_map"]
-            self.key_metric_map[key]["preprocessor"] = lambda pred, gt: (class_map.get(str(pred), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)),
-                                                                         class_map.get(str(gt), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)))
+            self.key_metric_map[key]["prediction_preprocessor"] = self.key_metric_map[key]["target_preprocessor"] = \
+                lambda value: class_map.get(str(value), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY))
         elif metric_name == SupportedKeyWiseMetric.Classification_MultilabelAccuracy or metric_name == SupportedKeyWiseMetric.Classification_MultilabelF1:
             # Expects torch int or float tensor of shape (N, C, ...)
             class_map = self.key_metric_map[key]["class_map"]
 
-            def multilabel_preprocess(pred, gt):
-                class_indices_pred = [class_map.get(p, class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for p in pred]
-                one_hot_pred = [1 if class_index in class_indices_pred else 0 for class_index in range(0, len(class_map))]
-                class_indices_gt = [class_map.get(g, class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for g in gt]
-                one_hot_gt = [1 if class_index in class_indices_gt else 0 for class_index in range(0, len(class_map))]
-                return (one_hot_pred, one_hot_gt)
-            self.key_metric_map[key]["preprocessor"] = multilabel_preprocess
+            def multilabel_preprocess(value: list):
+                class_indices = [class_map.get(v, class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for v in value]
+                one_hot_list = [1 if class_index in class_indices else 0 for class_index in range(0, len(class_map))]
+                return one_hot_list
+            self.key_metric_map[key]["prediction_preprocessor"] = self.key_metric_map[key]["target_preprocessor"] = multilabel_preprocess
         elif metric_name == SupportedKeyWiseMetric.Detection_MeanAveragePrecision or metric_name == SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1:
             # Expects list of list of list of classes, [optionally scores], and bounding box coordinates, e.g., [[[0, 1.0, 0, 0, 10, 10]]]
             class_map = self.key_metric_map[key]["class_map"]
             if type == JSONSchemaKeyType.BoundingBox:
-                def detection_preprocess(pred, gt):
-                    if not isinstance(pred, list) or (isinstance(pred, list) and len(pred) < 4):
+                def detection_preprocess_prediction(value):
+                    if not isinstance(value, list) or (isinstance(value, list) and len(value) < 4):
                         return_pred = [[class_map["single_class"]] + [1.0] + [0., 0., 0., 0.]]
                     else:
-                        return_pred = [[class_map["single_class"]] + pred] if len(pred) == 5 else [[class_map["single_class"]] + [1.0] + pred]
-                    if not isinstance(gt, list) or (isinstance(gt, list) and len(gt) < 4):
+                        return_pred = [[class_map["single_class"]] + value] if len(value) == 5 else [[class_map["single_class"]] + [1.0] + value]
+                    return return_pred
+                def detection_preprocess_target(value):
+                    if not isinstance(value, list) or (isinstance(value, list) and len(value) < 4):
                         return_gt = [[class_map["single_class"]] + [0., 0., 0., 0.]]
                     else:
-                        return_gt = [[class_map["single_class"]] + gt]
-                    return (return_pred, return_gt)
-                self.key_metric_map[key]["preprocessor"] = detection_preprocess
+                        return_gt = [[class_map["single_class"]] + value]
+                    return return_gt
+                self.key_metric_map[key]["prediction_preprocessor"] = detection_preprocess_prediction
+                self.key_metric_map[key]["target_preprocessor"] = detection_preprocess_target
             elif type == JSONSchemaKeyType.Array:
-                def detection_preprocess(pred, gt):
+                def detection_list_preprocess_prediction(value):
                     return_pred = []
-                    return_gt = []
-                    for p in pred:
-                        if not isinstance(p, list) or (isinstance(p, list) and len(p) < 4):
+                    for v in value:
+                        if not isinstance(v, list) or (isinstance(v, list) and len(v) < 4):
                             return_pred.append([class_map["single_class"]] + [1.0] + [0., 0., 0., 0.])
                         else:
-                            return_pred.append([class_map["single_class"]] + p if len(p) == 5 else [class_map["single_class"]] + [1.0] + p)
-                    for g in gt:
-                        if not isinstance(g, list) or (isinstance(g, list) and len(g) < 4):
+                            return_pred.append([class_map["single_class"]] + v if len(v) == 5 else [class_map["single_class"]] + [1.0] + v)
+                    return return_pred
+                def detection_list_preprocess_target(value):
+                    return_gt = []
+                    for v in value:
+                        if not isinstance(v, list) or (isinstance(v, list) and len(v) < 4):
                             return_gt.append([class_map["single_class"]] + [0., 0., 0., 0.])
                         else:
-                            return_gt.append([class_map["single_class"]] + g)
-                    return (return_pred, return_gt)
-                self.key_metric_map[key]["preprocessor"] = detection_preprocess
+                            return_gt.append([class_map["single_class"]] + v)
+                    return return_gt
+                self.key_metric_map[key]["prediction_preprocessor"] = detection_list_preprocess_prediction
+                self.key_metric_map[key]["target_preprocessor"] = detection_list_preprocess_target
         elif metric_name == SupportedKeyWiseMetric.Regression_MeanAbsoluteError or metric_name == SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score:
             # Expects torch int or float tensor of shape (N)
-            self.key_metric_map[key]["preprocessor"] = lambda pred, gt: (float(pred), float(gt))
+            self.key_metric_map[key]["prediction_preprocessor"] = self.key_metric_map[key]["target_preprocessor"] = lambda value: float(value)

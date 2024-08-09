@@ -53,19 +53,22 @@ class KeyValuePairEvaluatorBase(Metric):
             "defect_types": {
                 "metric_name": SupportedKeyWiseMetric.Classification_MultilabelF1,
                 "metric_args": {"num_labels": 5, "average": "micro"},
-                "preprocessor": <reference to multilabel classification preprocessing function; see example implementation in key_value_pair_eval.py>,
+                "prediction_preprocessor": <reference to multilabel classification prediction preprocessing function; see example implementation in key_value_pair_eval.py>,
+                "target_preprocessor": <reference to multilabel classification target preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "key_trace": ["defect_types"]
             },
             "defect_locations": {
                 "metric_name": SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
                 "metric_args": {"box_format": "xyxy", "coords": "absolute"},
-                "preprocessor": <reference to detection preprocessing function; see example implementation in key_value_pair_eval.py>,
+                "prediction_preprocessor": <reference to detection prediction preprocessing function; see example implementation in key_value_pair_eval.py>,
+                "target_preprocessor": <reference to detection target preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "key_trace": ["defect_locations"]
             },
             "rationale": {
                 "metric_name": SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
                 "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT},
-                "preprocessor": <reference to captioning preprocessing function; see example implementations in key_value_pair_eval.py>,
+                "prediction_preprocessor": <reference to captioning prediction preprocessing function; see example implementations in key_value_pair_eval.py>,
+                "target_preprocessor": <reference to captioning target preprocessing function; see example implementations in key_value_pair_eval.py>,
                 "key_trace": ["rationale"]
             }
         }
@@ -73,19 +76,22 @@ class KeyValuePairEvaluatorBase(Metric):
             "brand_sentiment_has_non_contoso_brands": {
                 "metric_name": SupportedKeyWiseMetric.Classification_MulticlassF1,
                 "metric_args": {"num_classes": 3, "average": "micro"},
-                "preprocessor": <reference to multiclass classification preprocessing function; see example implementation in key_value_pair_eval.py>,
+                "prediction_preprocessor": <reference to multiclass classification prediction preprocessing function; see example implementation in key_value_pair_eval.py>,
+                "target_preprocessor": <reference to multiclass classification target preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "key_trace": ["brand_sentiment", "has_non_contoso_brands"]
             },
             "brand_sentiment_contoso_specific_sentiment": {
                 "metric_name": SupportedKeyWiseMetric.Classification_MulticlassF1,
                 "metric_args": {"num_classes": 6, "average": "micro"},
-                "preprocessor": <reference to multiclass classification preprocessing function; see example implementation in key_value_pair_eval.py>,
+                "prediction_preprocessor": <reference to multiclass classification prediction preprocessing function; see example implementation in key_value_pair_eval.py>,
+                "target_preprocessor": <reference to multiclass classification target preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "key_trace": ["brand_sentiment", "contoso_specific", "sentiment"]
             },
             "brand_sentiment_contoso_specific_logo_bounding_box": {
                 "metric_name": SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
                 "metric_args": {"box_format": "xyxy", "coords": "absolute"},
-                "preprocessor": <reference to detection preprocessing function; see example implementation in key_value_pair_eval.py>,
+                "prediction_preprocessor": <reference to detection prediction preprocessing function; see example implementation in key_value_pair_eval.py>,
+                "target_preprocessor": <reference to detection target preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "key_trace": ["brand_sentiment", "contoso_specific", "logo_bounding_box"]
             }
         }
@@ -159,12 +165,17 @@ class KeyValuePairEvaluatorBase(Metric):
 
                 # Construct expected evaluation metric update format for the current key
                 try:
-                    preprocessor = self.key_metric_map[key]["preprocessor"]
-                    key_prediction_formatted, key_target_formatted = preprocessor(key_prediction, key_target)
+                    prediction_preprocessor = self.key_metric_map[key]["prediction_preprocessor"]
+                    key_prediction_formatted = prediction_preprocessor(key_prediction)
                     key_predictions.append(key_prediction_formatted)
+                except ValueError as e:
+                    logger.debug(f"Encountered error {repr(e)} when preprocessing prediction '{key_prediction}' for key '{key}' to the '{self.key_metric_map[key]['metric_name']}' metric's expected format.")
+                try:
+                    target_preprocessor = self.key_metric_map[key]["target_preprocessor"]
+                    key_target_formatted = target_preprocessor(key_target)
                     key_targets.append(key_target_formatted)
                 except ValueError as e:
-                    logger.debug(f"Encountered error {repr(e)} when preprocessing prediction '{key_prediction}' and target '{key_target}' for key '{key}' to the metric's expected format.")
+                    logger.debug(f"Encountered error {repr(e)} when preprocessing target '{key_target}' for key '{key}' to the '{self.key_metric_map[key]['metric_name']}' metric's expected format.")
 
             # Convert lists to tensors for metrics that expect torch tensors
             if metric_name in METRICS_WITH_TENSOR_INPUT:
