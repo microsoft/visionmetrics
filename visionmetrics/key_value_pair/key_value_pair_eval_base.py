@@ -117,6 +117,16 @@ class KeyValuePairEvaluatorBase(Metric):
                 self.key_evaluator_map[key] = eval(f"{metric_name}(**metric_args)")
             except Exception as e:
                 raise ValueError(f"Encountered error '{repr(e)}' when instantiating metric '{metric_name}' for key '{key}' with arguments '{metric_args}'.")
+        self.invalid_predicted_keys = []
+
+    def _get_invalid_keys(self, sample, key_trace: list = [], invalid_keys: list = []):
+        if isinstance(sample, dict):
+            for key in sample:
+                self._get_invalid_keys(sample[key], key_trace=key_trace + [key], invalid_keys=invalid_keys)
+        else:
+            flattened_key_name = '_'.join(key_trace)
+            if flattened_key_name not in self.key_metric_map:
+                invalid_keys.append(flattened_key_name)
 
     def update(self, predictions, targets):
         """
@@ -124,6 +134,13 @@ class KeyValuePairEvaluatorBase(Metric):
         Both predictions and targets should be dictionaries of the form {'<key>': <value>}, where <value> is in the format expected for the respective metric for that key.
         Each sample in predictions and targets must have the same keys (though they do not have to have all the keys in the dataset).
         """
+        for prediction, target in zip(predictions, targets):
+            target_invalid_keys = []
+            self._get_invalid_keys(sample=target, invalid_keys=target_invalid_keys)
+            if target_invalid_keys:
+                raise ValueError(f"The target sample '{target}' has at least one invalid key not present in the schema: {', '.join(target_invalid_keys)}.")
+            self._get_invalid_keys(sample=prediction, invalid_keys=self.invalid_predicted_keys)
+
         for key, metric in self.key_evaluator_map.items():
             metric_name = self.key_metric_map[key]["metric_name"]
             key_trace = self.key_metric_map[key]["key_trace"]
@@ -194,6 +211,7 @@ class KeyValuePairEvaluatorBase(Metric):
                     total_fp += self.key_evaluator_map[key].fp.item()
                     total_fn += self.key_evaluator_map[key].fn.item()
             macro_f1 = macro_f1 / len(self.key_metric_map)
+            total_fp += len(self.invalid_predicted_keys)
             try:
                 total_precision = total_tp / (total_tp + total_fp)
             except ZeroDivisionError:
