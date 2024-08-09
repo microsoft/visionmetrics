@@ -1,9 +1,9 @@
 from enum import Enum
+import logging
 
 from visionmetrics.key_value_pair.key_value_pair_eval_base import KeyValuePairEvaluatorBase, SupportedKeyWiseMetric
 
-
-OUT_OF_DISTRIBUTION_ENUM_KEY = "<|other|>"
+logger = logging.getLogger(__name__)
 
 
 class JSONSchemaKeyType(str, Enum):
@@ -17,6 +17,7 @@ class JSONSchemaKeyType(str, Enum):
 
 
 SIMPLE_KEY_TYPES = [JSONSchemaKeyType.String, JSONSchemaKeyType.Number, JSONSchemaKeyType.Integer, JSONSchemaKeyType.Boolean, JSONSchemaKeyType.BoundingBox]
+OUT_OF_DISTRIBUTION_ENUM_KEY = "<|other|>"
 
 
 class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
@@ -140,10 +141,6 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             key_schema: dictionary in JSON schema format specifying the expected schema for the prediction and target dictionaries to be used in evaluation.
             key_trace: list of strings of key names that traces the path to the current key in the key-value pair prediction/target object (not in the schema).
         """
-        # Use text as the default metric for all keys
-        self._assign_key_metric_map_values(key=key,
-                                           metric_name=SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
-                                           metric_args={"endpoint": self.endpoint, "deployment_name": self.deployment_name})
         if key_schema["type"] == JSONSchemaKeyType.String:
             if "enum" in key_schema:
                 class_map = self._get_enum_class_map(key_schema["enum"])
@@ -193,7 +190,13 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             for subkey in key_schema["properties"]:
                 subkey_name = f"{key}_{subkey}"
                 self._populate_key_metric_map(key=subkey_name, key_schema=key_schema["properties"][subkey], key_trace=key_trace + [subkey])
-            del self.key_metric_map[key]
+
+        if key not in self.key_metric_map and key_schema["type"] != JSONSchemaKeyType.Object:
+            # Use text as the default metric for all keys; 'object' key type should not have its own key
+            self._assign_key_metric_map_values(key=key,
+                                            metric_name=SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
+                                            metric_args={"endpoint": self.endpoint, "deployment_name": self.deployment_name})
+            logger.debug(f"Using default metric '{SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore.value}' for key '{key}'.")
 
         if key in self.key_metric_map:
             self._populate_key_preprocessor(key=key, type=key_schema["type"])
