@@ -104,7 +104,6 @@ class TestRetrievalPrecision(unittest.TestCase):
             metric = RetrievalMAP(top_k=k)
             metric.update(preds.float(), target)
             result = metric.compute()
-            print(result)
             self.assertAlmostEqual(result.item(), exps, places=4)
 
     def test_precision_recall_curve_n_points(self):

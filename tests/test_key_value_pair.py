@@ -427,48 +427,115 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
                                                 deployment_name=self.DEPLOYMENT)
-        with self.assertRaises(ValueError) as context:
-            evaluator.update(predictions=[{
-                                "brand_sentiment": {
-                                    "contoso_specific": {
-                                        "sentiment": "very positive",
-                                        "logo_bounding_box": [0, 0, 100, 100]
+        self.assertRaisesRegex(ValueError,
+                               r"The key 'brand_sentiment_has_non_contoso_brands' does not exist in the prediction sample "
+                               r"'{'brand_sentiment': {'contoso_specific': {'sentiment': 'very positive', 'logo_bounding_box': \[0, 0, 100, 100\]}}}'.",
+                               evaluator.update,
+                               [{
+                                   "brand_sentiment": {
+                                       "contoso_specific": {
+                                           "sentiment": "very positive",
+                                           "logo_bounding_box": [0, 0, 100, 100]
+                                        }
                                     }
-                                }
-                            }],
-                            targets=[{
-                                "brand_sentiment": {
-                                    "has_non_contoso_brands": True,
-                                    "contoso_specific": {
-                                        "sentiment": "very positive",
-                                        "logo_bounding_box": [0, 0, 100, 100]
+                                }],
+                               [{
+                                   "brand_sentiment": {
+                                       "has_non_contoso_brands": True,
+                                       "contoso_specific": {
+                                           "sentiment": "very positive",
+                                           "logo_bounding_box": [0, 0, 100, 100]
+                                        }
                                     }
-                                }
-                            }])
-            self.assertEqual(str(context.exception), "The key 'brand_sentiment_has_non_contoso_brands' does not exist in the prediction sample "
-                             "'\"{'brand_sentiment': {'contoso_specific': {'sentiment': 'very positive', 'logo_bounding_box': [0, 0, 100, 100]}}}\"'.")
+                                }]
+                               )
 
     def test_key_value_pair_extraction_evaluator_target_missing_key(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
                                                 deployment_name=self.DEPLOYMENT)
-        with self.assertRaises(ValueError) as context:
-            evaluator.update(predictions=[{
-                                "brand_sentiment": {
-                                    "has_non_contoso_brands": True,
-                                    "contoso_specific": {
-                                        "sentiment": "very positive",
-                                        "logo_bounding_box": [0, 0, 100, 100]
+        self.assertRaisesRegex(ValueError,
+                               r"The key 'brand_sentiment_contoso_specific_logo_bounding_box' does not exist in the target sample "
+                               r"'{'brand_sentiment': {'has_non_contoso_brands': True, 'contoso_specific': {'sentiment': 'very positive'}}}'.",
+                               evaluator.update,
+                               [{
+                                   "brand_sentiment": {
+                                       "has_non_contoso_brands": True,
+                                       "contoso_specific": {
+                                           "sentiment": "very positive",
+                                           "logo_bounding_box": [0, 0, 100, 100]
+                                        }
                                     }
-                                }
-                            }],
-                            targets=[{
-                                "brand_sentiment": {
-                                    "has_non_contoso_brands": True,
-                                    "contoso_specific": {
-                                        "sentiment": "very positive"
+                                }],
+                               [{
+                                   "brand_sentiment": {
+                                       "has_non_contoso_brands": True,
+                                       "contoso_specific": {
+                                           "sentiment": "very positive"
+                                        }
                                     }
+                                }]
+                               )
+
+    def test_key_value_pair_extraction_evaluator_prediction_invalid_keys(self):
+        evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
+                                                endpoint=self.ENDPOINT,
+                                                deployment_name=self.DEPLOYMENT)
+        evaluator.update(predictions=[{
+                            "brand_sentiment": {
+                                "has_non_contoso_brands": True,
+                                "contoso_specific": {
+                                    "sentiment": "very positive",
+                                    "logo_bounding_box": [0, 0, 100, 100],
+                                    "invalid_key": None
+                                },
+                                "another_invalid_key": None
+                            }
+                        }],
+                        targets=[{
+                            "brand_sentiment": {
+                                "has_non_contoso_brands": True,
+                                "contoso_specific": {
+                                    "sentiment": "very positive",
+                                    "logo_bounding_box": [0, 0, 100, 100]
                                 }
-                            }])
-            self.assertEqual(str(context.exception), "The key 'brand_sentiment_contoso_specific_logo_bounding_box' does not exist in the target sample "
-                             "'\"{'brand_sentiment': 'has_non_contoso_brands': True, {'contoso_specific': {'sentiment': 'very positive'}}}\"'.")
+                            }
+                        }])
+        report = evaluator.compute()
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_has_non_contoso_brands"].item(), 1.)
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_contoso_specific_sentiment"].item(), 1.)
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_contoso_specific_logo_bounding_box"]["F1"], 1.)
+
+        self.assertAlmostEqual(report["MicroF1"], 0.75)
+        self.assertAlmostEqual(report["MacroF1"], 1.0)
+
+    def test_key_value_pair_extraction_evaluator_target_invalid_keys(self):
+        evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
+                                                endpoint=self.ENDPOINT,
+                                                deployment_name=self.DEPLOYMENT)
+        self.assertRaisesRegex(ValueError,
+                               r"The target sample '{'brand_sentiment': {'has_non_contoso_brands': True, 'contoso_specific': "
+                               r"{'sentiment': 'very positive', 'logo_bounding_box': \[0, 0, 100, 100\], 'invalid_key': 2}, 'another_invalid_key': None}}' has at least one invalid key "
+                               r"not present in the schema: brand_sentiment_contoso_specific_invalid_key, brand_sentiment_another_invalid_key.",
+                               evaluator.update,
+                               [{
+                                   "brand_sentiment": {
+                                       "has_non_contoso_brands": True,
+                                       "contoso_specific": {
+                                           "sentiment": "very positive",
+                                           "logo_bounding_box": [0, 0, 100, 100]
+                                        }
+                                    }
+                                }],
+                               [{
+                                   "brand_sentiment": {
+                                       "has_non_contoso_brands": True,
+                                       "contoso_specific": {
+                                           "sentiment": "very positive",
+                                           "logo_bounding_box": [0, 0, 100, 100],
+                                           "invalid_key": 2
+                                        },
+                                       "another_invalid_key": None
+                                    }
+                                }]
+                               )
