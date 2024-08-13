@@ -47,12 +47,12 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
         },
         "number_of_chinchillas": {
             "metric_name": SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score,
-            "metric_args": {"error_threshold": 1.0},
+            "metric_args": {"error_threshold": 0.0},
             "key_trace": ["number_of_chinchillas"]
         },
         "estimated_temperature": {
             "metric_name": SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score,
-            "metric_args": {"error_threshold": 1.0},
+            "metric_args": {"error_threshold": 0.0},
             "key_trace": ["estimated_temperature"]
         },
         "escaped": {
@@ -265,7 +265,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
             evaluator.update(predictions=[{
                                 "image_description": "Two chinchillas eating.",
                                 "number_of_chinchillas": 2,
-                                "estimated_temperature": 21,
+                                "estimated_temperature": 21.0,
                                 "escaped": False,
                                 "activity": "eating",
                                 "cage_number": 3,
@@ -273,7 +273,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                             }, {
                                 "image_description": "There is possibly one chinchilla in the cage.",
                                 "number_of_chinchillas": 0,
-                                "estimated_temperature": 20,
+                                "estimated_temperature": 20.0,
                                 "escaped": False,
                                 "activity": "none",
                                 "cage_number": 2,
@@ -282,7 +282,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                             targets=[{
                                 "image_description": "Two chinchillas are eating in a cage.",
                                 "number_of_chinchillas": 2,
-                                "estimated_temperature": 24,
+                                "estimated_temperature": 21.0,
                                 "escaped": False,
                                 "activity": "eating",
                                 "cage_number": 2,
@@ -746,7 +746,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                             targets=[{
                                 "image_description": "There is one sleeping chinchilla in the far corner of the cage.",
                                 "number_of_chinchillas": 1,
-                                "estimated_temperature": 20.5,
+                                "estimated_temperature": 20,
                                 "escaped": False,
                                 "activity": "sleeping",
                                 "cage_number": 1,

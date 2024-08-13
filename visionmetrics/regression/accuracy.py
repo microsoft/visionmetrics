@@ -10,8 +10,10 @@ class MeanAbsoluteErrorF1Score(Metric):
     Args:
         error_threshold: float indicating the exclusive threshold below which the mean absolute error is considered a true positive.
     """
-    def __init__(self, error_threshold=1.):
+    def __init__(self, error_threshold=0.0):
         super().__init__()
+        if error_threshold < 0:
+            raise ValueError(f"'error_threshold' must be >= 0; got error_threshold={error_threshold}.")
         self.error_threshold = error_threshold
 
         self.add_state("tp", default=torch.tensor(0.0), dist_reduce_fx="sum")
@@ -26,7 +28,7 @@ class MeanAbsoluteErrorF1Score(Metric):
         if predictions.shape != targets.shape:
             raise ValueError(f"'predictions' and 'targets' must have the same shape; got predictions of shape {list(predictions.shape)} and targets of shape {list(targets.shape)}.")
         n_obs = targets.numel()
-        tp = torch.sum(torch.where(torch.abs(predictions - targets) < self.error_threshold, 1, 0))
+        tp = torch.sum(torch.where(torch.abs(predictions - targets) <= self.error_threshold, 1, 0))
         fp = n_obs - tp
         fn = n_obs - tp
         self.tp += tp

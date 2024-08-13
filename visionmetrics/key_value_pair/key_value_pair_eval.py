@@ -158,7 +158,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             else:
                 self._assign_key_metric_map_values(key=key,
                                                    metric_name=SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score,
-                                                   metric_args={"error_threshold": 1.0})
+                                                   metric_args={"error_threshold": 0.0})
         elif key_schema["type"] == JSONSchemaKeyType.Boolean:
             class_map = self._get_enum_class_map([True, False])
             self._assign_key_metric_map_values(key=key,
