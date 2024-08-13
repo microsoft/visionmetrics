@@ -123,7 +123,7 @@ class KeyValuePairEvaluatorBase(Metric):
             try:
                 self.key_evaluator_map[key] = eval(f"{metric_name}(**metric_args)")
             except Exception as e:
-                raise ValueError(f"Encountered error '{repr(e)}' when instantiating metric '{metric_name}' for key '{key}' with arguments '{metric_args}'.")
+                raise ValueError(f"Encountered error '{e}' when instantiating metric '{metric_name}' for key '{key}' with arguments '{metric_args}'.")
         self.invalid_predicted_keys = []
 
     def _get_invalid_keys(self, sample, key_trace: list = [], invalid_keys: list = []):
@@ -172,14 +172,14 @@ class KeyValuePairEvaluatorBase(Metric):
                     key_prediction_formatted = prediction_preprocessor(key_prediction)
                     key_predictions.append(key_prediction_formatted)
                 except ValueError as e:
-                    logger.debug(f"Encountered error {repr(e)} when preprocessing prediction '{key_prediction}' for key '{key}' to the '{self.key_metric_map[key]['metric_name']}' metric's"
+                    logger.debug(f"Encountered error {e} when preprocessing prediction '{key_prediction}' for key '{key}' to the '{self.key_metric_map[key]['metric_name']}' metric's"
                                  " expected format.")
                 try:
                     target_preprocessor = self.key_metric_map[key]["target_preprocessor"]
                     key_target_formatted = target_preprocessor(key_target)
                     key_targets.append(key_target_formatted)
                 except ValueError as e:
-                    logger.debug(f"Encountered error {repr(e)} when preprocessing target '{key_target}' for key '{key}' to the '{self.key_metric_map[key]['metric_name']}' metric's expected format.")
+                    logger.debug(f"Encountered error {e} when preprocessing target '{key_target}' for key '{key}' to the '{self.key_metric_map[key]['metric_name']}' metric's expected format.")
 
             # Convert lists to tensors for metrics that expect torch tensors
             if metric_name in METRICS_WITH_TENSOR_INPUT:
@@ -189,7 +189,7 @@ class KeyValuePairEvaluatorBase(Metric):
             try:
                 metric.update(key_predictions, key_targets)
             except Exception as e:
-                raise ValueError(f"Encountered error '{repr(e)}' when updating metric '{self.key_metric_map[key]['metric_name']}' for key '{key}'.")
+                raise ValueError(f"Encountered error '{e}' when updating metric '{self.key_metric_map[key]['metric_name']}' for key '{key}'.")
 
     def compute(self):
         """
@@ -201,7 +201,7 @@ class KeyValuePairEvaluatorBase(Metric):
                 metric = self.key_evaluator_map[key]
                 key_wise_scores[key] = metric.compute()
             except Exception as e:
-                raise ValueError(f"Encountered error '{repr(e)}' when computing metric '{self.key_metric_map[key]['metric_name']}' for key '{key}'.")
+                raise ValueError(f"Encountered error '{e}' when computing metric '{self.key_metric_map[key]['metric_name']}' for key '{key}'.")
 
         # If all keys support F1 scores, compute total micro- and macro-averaged F1 scores
         if all([self.key_metric_map[key]["metric_name"] in SUPPORTED_F1_METRICS]):
