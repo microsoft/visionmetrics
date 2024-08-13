@@ -7,6 +7,7 @@ from torchmetrics import Metric
 
 # Import relevant visionmetrics modules; even though they appear to be unused to flake8, they are needed for dynamic metric instantiation at runtime.
 from visionmetrics import caption, classification, detection, grounding, regression  # noqa: F401
+from visionmetrics.common.utils import precision_recall_f1_scalar
 
 logger = logging.getLogger(__name__)
 
@@ -226,21 +227,10 @@ class KeyValuePairEvaluatorBase(Metric):
                     total_fn += self.key_evaluator_map[key].fn.item()
             macro_f1 = macro_f1 / len(self.key_metric_map)
             total_fp += len(self.invalid_predicted_keys)
-            try:
-                total_precision = total_tp / (total_tp + total_fp)
-            except ZeroDivisionError:
-                total_precision = 0.
-            try:
-                total_recall = total_tp / (total_tp + total_fn)
-            except ZeroDivisionError:
-                total_recall = 0.
-            try:
-                micro_f1 = (2 * total_precision * total_recall) / (total_precision + total_recall)
-            except ZeroDivisionError:
-                micro_f1 = 0.
+            precision_recall_f1 = precision_recall_f1_scalar(tp=total_tp, fp=total_fp, fn=total_fn)
 
         return {
-            "MicroF1": micro_f1,
+            "MicroF1": precision_recall_f1["F1"],
             "MacroF1": macro_f1,
             "KeyWiseScores": key_wise_scores
         }

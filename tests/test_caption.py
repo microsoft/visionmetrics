@@ -85,7 +85,7 @@ class TestAzureOpenAITextModelCategoricalEvaluator(unittest.TestCase):
         "Precision": 0.5,
         "Recall": 0.5,
         "F1": 0.5,
-        "Accuracy": 2.1666666666666665,
+        "Accuracy": 0.5,
         # Raw statistic counts
         "TP": 2,
         "TN": 1,

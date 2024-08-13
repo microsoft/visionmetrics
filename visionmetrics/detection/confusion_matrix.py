@@ -2,6 +2,8 @@ import torch
 from torchmetrics import Metric
 from typing import List
 
+from visionmetrics.common.utils import precision_recall_f1_scalar
+
 
 class DetectionConfusionMatrix(Metric):
     """
@@ -191,20 +193,4 @@ class DetectionMicroPrecisionRecallF1(DetectionConfusionMatrix):
         tp = self.tp.item()
         fp = self.fp.item()
         fn = self.fn.item()
-        try:
-            precision = tp / (tp + fp)
-        except ZeroDivisionError:
-            precision = 0.
-        try:
-            recall = tp / (tp + fn)
-        except ZeroDivisionError:
-            recall = 0.
-        try:
-            f1 = (2 * precision * recall) / (precision + recall)
-        except ZeroDivisionError:
-            f1 = 0.
-        return {
-            "Precision": precision,
-            "Recall": recall,
-            "F1": f1
-        }
+        return precision_recall_f1_scalar(tp=tp, fp=fp, fn=fn)

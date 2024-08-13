@@ -5,6 +5,8 @@ from irisml.tasks.create_azure_openai_chat_model import OpenAITextChatModel
 import logging
 from torchmetrics import Metric
 
+from visionmetrics.common.utils import precision_recall_f1_scalar
+
 logger = logging.getLogger(__name__)
 
 
@@ -138,20 +140,9 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
             result_counts[ResultStatusType.FalseNegative], \
             result_counts[ResultStatusType.FalsePositiveGtNull], \
             result_counts[ResultStatusType.FalsePositiveGtNotNull]
+        precision_recall_f1 = precision_recall_f1_scalar(tp=tp, fp=fp_gt_null + fp_gt_not_null, fn=fn + fp_gt_not_null)
         try:
-            precision = tp / (tp + fp_gt_null + fp_gt_not_null)
-        except ZeroDivisionError:
-            precision = 0.
-        try:
-            recall = tp / (tp + fn + fp_gt_not_null)
-        except ZeroDivisionError:
-            recall = 0.
-        try:
-            f1 = (2 * precision * recall) / (precision + recall)
-        except ZeroDivisionError:
-            f1 = 0.
-        try:
-            accuracy = tp + tn / (tp + tn + fn + fp_gt_null + fp_gt_not_null)
+            accuracy = (tp + tn) / (tp + tn + fn + fp_gt_null + fp_gt_not_null)
         except ZeroDivisionError:
             accuracy = 0.
         try:
@@ -160,9 +151,9 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
             average_score = 0.
         return {
             # Summary statistics
-            "Precision": precision,
-            "Recall": recall,
-            "F1": f1,
+            "Precision": precision_recall_f1["Precision"],
+            "Recall": precision_recall_f1["Recall"],
+            "F1": precision_recall_f1["F1"],
             "Accuracy": accuracy,
             "AverageScore": average_score,
             # Raw statistic counts
