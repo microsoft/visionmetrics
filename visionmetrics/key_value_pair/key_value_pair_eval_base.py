@@ -79,21 +79,21 @@ class KeyValuePairEvaluatorBase(Metric):
                 "metric_args": {"num_classes": 3, "average": "micro"},
                 "prediction_preprocessor": <reference to multiclass classification prediction preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "target_preprocessor": <reference to multiclass classification target preprocessing function; see example implementation in key_value_pair_eval.py>,
-                "key_trace": ["brand_sentiment", "has_non_contoso_brands"]
+                "key_trace": ["brand_sentiment", "value", "has_non_contoso_brands"]
             },
             "brand_sentiment_contoso_specific_sentiment": {
                 "metric_name": SupportedKeyWiseMetric.Classification_MulticlassF1,
                 "metric_args": {"num_classes": 6, "average": "micro"},
                 "prediction_preprocessor": <reference to multiclass classification prediction preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "target_preprocessor": <reference to multiclass classification target preprocessing function; see example implementation in key_value_pair_eval.py>,
-                "key_trace": ["brand_sentiment", "contoso_specific", "sentiment"]
+                "key_trace": ["brand_sentiment", "value", "contoso_specific", "value", "sentiment"]
             },
             "brand_sentiment_contoso_specific_logo_bounding_box": {
                 "metric_name": SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
                 "metric_args": {"box_format": "xyxy", "coords": "absolute"},
                 "prediction_preprocessor": <reference to detection prediction preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "target_preprocessor": <reference to detection target preprocessing function; see example implementation in key_value_pair_eval.py>,
-                "key_trace": ["brand_sentiment", "contoso_specific", "logo_bounding_box"]
+                "key_trace": ["brand_sentiment", "value", "contoso_specific", "value", "logo_bounding_box"]
             }
         }
     }
@@ -129,7 +129,7 @@ class KeyValuePairEvaluatorBase(Metric):
     def _get_invalid_keys(self, sample, key_trace: list = [], invalid_keys: list = []):
         if isinstance(sample, dict):
             for key in sample:
-                self._get_invalid_keys(sample[key], key_trace=key_trace + [key], invalid_keys=invalid_keys)
+                self._get_invalid_keys(sample[key]["value"], key_trace=key_trace + [key], invalid_keys=invalid_keys)
         else:
             flattened_key_name = '_'.join(key_trace)
             if flattened_key_name not in self.key_metric_map:
@@ -160,6 +160,7 @@ class KeyValuePairEvaluatorBase(Metric):
                 try:
                     key_prediction = reduce(operator.getitem, key_trace, prediction)
                 except KeyError:
+                    # TODO: Need to count this as a false negative instead of not allowing the prediction to exist
                     raise ValueError(f"The key '{key}' does not exist in the prediction sample '{prediction}'.")
                 try:
                     key_target = reduce(operator.getitem, key_trace, target)

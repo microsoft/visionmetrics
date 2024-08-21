@@ -11,38 +11,40 @@ class JSONSchemaKeyType(str, Enum):
     Number = "number"
     Integer = "integer"
     Boolean = "boolean"
-    BoundingBox = "bbox"
     Array = "array"
     Object = "object"
 
 
-SIMPLE_KEY_TYPES = [JSONSchemaKeyType.String, JSONSchemaKeyType.Number, JSONSchemaKeyType.Integer, JSONSchemaKeyType.Boolean, JSONSchemaKeyType.BoundingBox]
+# Constants for schemas
+SIMPLE_KEY_TYPES = [JSONSchemaKeyType.String, JSONSchemaKeyType.Number, JSONSchemaKeyType.Integer, JSONSchemaKeyType.Boolean]
 OUT_OF_DISTRIBUTION_ENUM_KEY = "<|other|>"
+
+# Constants for predictions and targets
+VALUE_SUBKEY = "value"
+GROUNDINGS_SUBKEY = "groundings"
+DESCRIPTION_SUBKEY = "description"
 
 
 class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
     """
     Evaluator for a key-value pair dataset. The default evaluator (if the key does not have values of a particular form) is the caption.AzureOpenAITextModelCategoricalScore due to its flexibility.
-    Note: Currently, detection metrics are class-agnostic; bounding boxes are evaluated separately from classes. TODO: Consider supporting multiclass detection metrics, which may complicate logic.
     Args:
         key_value_pair_schema: dictionary in JSON Schema format indicating each key and expected value type for each extracted field.
         Examples (corresponding to the examples in key_value_pair_eval_base.py):
         defect_detection_schema = {
-            "defect_types": {
+            "defects": {
                 "type": "array",
                 "description": "The defect types present in the image.",
                 "items": {
                     "type": "string",
                     "description": "The type of defect detected",
-                    "enum": ["scratch", "dent", "discoloration", "crack"]
-                }
-            },
-            "defect_locations": {
-                "type": "array",
-                "description": "The defect bounding boxes corresponding to each of the identified types.",
-                "items": {
-                    "type": "bbox",
-                    "description": "Bounding box indicating the location of the defect."
+                    "classes": {
+                        "scratch": {"description": "Long, thin, surface-level mark."},
+                        "dent": {"description": "Appears to be caving in toward the material."},
+                        "discoloration": {"description": "Coloration is abnormal."},
+                        "crack": {"description": "Deeper mark than a scratch."}
+                    },
+                    "includeGrounding": True
                 }
             },
             "rationale": {
@@ -50,29 +52,41 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                 "description": "Rationale for the identified defects."
             }
         }
-        Note: In the above defect_detection_schema example, if "defect_types" and "defect_locations" were both items of a larger "defects" array rather than separate top-level arrays,
-        then the whole "defects" field would be evaluated as text. We currently do not support non-text evaluation for arrays with complex item types.
-        brand_sentiment_schema = {
-            "brand_sentiment": {
-                "type": "object",
-                "description": "Attributes of sentiment toward brands depicted in the image.",
-                "properties": {
-                    "has_non_contoso_brands": {
-                        "type": "boolean",
-                        "description": "Whether the image depicts or contains anything about non-Contoso brands."
-                    },
-                    "contoso_specific": {
-                        "type": "object",
-                        "description": "Sentiment related specifically to the company Contoso.",
-                        "properties": {
-                            "sentiment": {
+        "brand_sentiment": {
+            "type": "object",
+            "description": "Attributes of sentiment toward brands depicted in the image.",
+            "properties": {
+                "has_non_contoso_brands": {
+                    "type": "boolean",
+                    "description": "Whether the image depicts or contains anything about non-Contoso brands."
+                },
+                "contoso_specific": {
+                    "type": "object",
+                    "description": "Sentiment related specifically to the company Contoso.",
+                    "properties": {
+                        "sentiment": {
+                            "type": "string",
+                            "description": "Sentiment toward the brand as depicted in the image.",
+                            "classes": {
+                                "very positive": {"description": "The greatest possible positive depiction."},
+                                "somewhat positive": {"description": "Clearly positive, but not effusive."},
+                                "neutral": {"description": "Does not have a clear sentiment."},
+                                "somewhat negative": {"description": "Clearly negative, but not effusive."},
+                                "very negative": {"description": "The greatest possible negative depiction."}
+                            }
+                        },
+                        "logos": {
+                            "type": "array",
+                            "description": "The types of Contoso logos present in the image.",
+                            "items": {
                                 "type": "string",
-                                "description": "Sentiment toward the brand as depicted in the image.",
-                                "enum": ["very positive", "somewhat positive", "neutral", "somewhat negative", "negative"]
-                            },
-                            "logo_bounding_box": {
-                                "type": "bbox",
-                                "description": "The bounding box around the Contoso logo in the image, if applicable."
+                                "description": "The name of the company whose logo is in the image.",
+                                "classes": {
+                                    "text": {"description": "Contoso's text-only logo."},
+                                    "grayscale": {"description": "Contoso's grayscale icon logo."},
+                                    "rgb": {"description": "Contoso's RGB icon logo."}
+                                },
+                                "includeGrounding": True
                             }
                         }
                     }
@@ -80,7 +94,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             }
         }
         Note: In the above brand_sentiment_schema example, since the nested objects are all objects (not arrays), the object is recursively traversed to assign metrics to the
-        innermost object fields ("sentiment" and "logo_bounding_box").
+        innermost object fields ("sentiment" and "logos").
 
         endpoint: string of the Azure OpenAI endpoint to be used as the default text evaluator.
         deployment_name: string of the Azure OpenAI deployment name to be used for the default text evaluator.
@@ -102,14 +116,14 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
 
         super().__init__(key_metric_map=self.key_metric_map)
 
-    def _get_enum_class_map(self, classes: list):
+    def _get_enum_class_map(self, classes: dict):
         """
-        Constructs and returns an enum class map from string class names to integer class indices,
-        used in preprocessing enum-type values that are evaluated using classification and detection metrics.
+        Constructs and returns a class map from string class names to integer class indices,
+        used in preprocessing values that have classes, which are evaluated using classification and detection metrics.
         Args:
-            classes: list of class names, of any type compatible with the str() function.
+            classes: dict of class names to dicts of class descriptions and other potential values. Class names can be strings, integers, or floats.
         """
-        class_map = {str(class_name): i for i, class_name in enumerate(classes)}
+        class_map = {str(class_name): i for i, class_name in enumerate(classes.keys())}
         # Reserve one class to catch cases where predictions are not in the set of expected classes
         class_map[OUT_OF_DISTRIBUTION_ENUM_KEY] = len(class_map)
         return class_map
@@ -141,55 +155,54 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             key_schema: dictionary in JSON schema format specifying the expected schema for the prediction and target dictionaries to be used in evaluation.
             key_trace: list of strings of key names that traces the path to the current key in the key-value pair prediction/target object (not in the schema).
         """
-        if key_schema["type"] == JSONSchemaKeyType.String:
-            if "enum" in key_schema:
-                class_map = self._get_enum_class_map(key_schema["enum"])
-                self._assign_key_metric_map_values(key=key,
-                                                   metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
-                                                   metric_args={"num_classes": len(class_map), "average": "micro"},
-                                                   class_map=class_map)
-        elif key_schema["type"] == JSONSchemaKeyType.Number or key_schema["type"] == JSONSchemaKeyType.Integer:
-            if "enum" in key_schema:
-                class_map = self._get_enum_class_map(key_schema["enum"])
-                self._assign_key_metric_map_values(key=key,
-                                                   metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
-                                                   metric_args={"num_classes": len(class_map), "average": "micro"},
-                                                   class_map=class_map)
-            else:
+        if key_schema["type"] in [JSONSchemaKeyType.String, JSONSchemaKeyType.Number, JSONSchemaKeyType.Integer]:
+            if "classes" in key_schema:
+                class_map = self._get_enum_class_map(key_schema["classes"])
+                if "includeGrounding" in key_schema:
+                    self._assign_key_metric_map_values(key=key,
+                                                       metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
+                                                       metric_args={"iou_threshold": 0.5, "box_format": "xyxy", "coords": "absolute"},
+                                                       class_map=class_map)
+                else:
+                    self._assign_key_metric_map_values(key=key,
+                                                       metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
+                                                       metric_args={"num_classes": len(class_map), "average": "micro"},
+                                                       class_map=class_map)
+            elif key_schema["type"] in [JSONSchemaKeyType.Number, JSONSchemaKeyType.Integer]:
                 self._assign_key_metric_map_values(key=key,
                                                    metric_name=SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score,
                                                    metric_args={"error_threshold": 0.0})
         elif key_schema["type"] == JSONSchemaKeyType.Boolean:
-            class_map = self._get_enum_class_map([True, False])
-            self._assign_key_metric_map_values(key=key,
-                                               metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
-                                               metric_args={"num_classes": len(class_map), "average": "micro"},
-                                               class_map=class_map)
-        elif key_schema["type"] == JSONSchemaKeyType.BoundingBox:
-            # Currently only supports class-agnostic detection metrics
-            self._assign_key_metric_map_values(key=key,
-                                               metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
-                                               metric_args={"iou_threshold": 0.5, "box_format": "xyxy", "coords": "absolute"},
-                                               class_map={"single_class": 0})
+            class_map = self._get_enum_class_map({True: {DESCRIPTION_SUBKEY: ""}, False: {DESCRIPTION_SUBKEY: ""}})
+            if "includeGrounding" in key_schema:
+                self._assign_key_metric_map_values(key=key,
+                                                   metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
+                                                   metric_args={"iou_threshold": 0.5, "box_format": "xyxy", "coords": "absolute"},
+                                                   class_map=class_map)
+            else:
+                self._assign_key_metric_map_values(key=key,
+                                                   metric_name=SupportedKeyWiseMetric.Classification_MulticlassF1,
+                                                   metric_args={"num_classes": len(class_map), "average": "micro"},
+                                                   class_map=class_map)
         elif key_schema["type"] == JSONSchemaKeyType.Array:
             # For more complex arrays, we default to the caption evaluator
             if key_schema["items"]["type"] in SIMPLE_KEY_TYPES:
-                if key_schema["items"]["type"] == JSONSchemaKeyType.BoundingBox:
-                    # Currently only supports class-agnostic detection metrics
-                    self._assign_key_metric_map_values(key=key,
-                                                       metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
-                                                       metric_args={"iou_threshold": 0.5, "box_format": "xyxy", "coords": "absolute"},
-                                                       class_map={"single_class": 0})
-                elif "enum" in key_schema["items"]:
-                    class_map = self._get_enum_class_map(key_schema["items"]["enum"])
-                    self._assign_key_metric_map_values(key=key,
-                                                       metric_name=SupportedKeyWiseMetric.Classification_MultilabelF1,
-                                                       metric_args={"num_labels": len(class_map), "average": "micro"},
-                                                       class_map=class_map)
+                if "classes" in key_schema["items"]:
+                    class_map = self._get_enum_class_map(key_schema["items"]["classes"])
+                    if "includeGrounding" in key_schema["items"]:
+                        self._assign_key_metric_map_values(key=key,
+                                                           metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
+                                                           metric_args={"iou_threshold": 0.5, "box_format": "xyxy", "coords": "absolute"},
+                                                           class_map=class_map)
+                    else:
+                        self._assign_key_metric_map_values(key=key,
+                                                           metric_name=SupportedKeyWiseMetric.Classification_MultilabelF1,
+                                                           metric_args={"num_labels": len(class_map), "average": "micro"},
+                                                           class_map=class_map)
         elif key_schema["type"] == JSONSchemaKeyType.Object:
             for subkey in key_schema["properties"]:
                 subkey_name = f"{key}_{subkey}"
-                self._populate_key_metric_map(key=subkey_name, key_schema=key_schema["properties"][subkey], key_trace=key_trace + [subkey])
+                self._populate_key_metric_map(key=subkey_name, key_schema=key_schema["properties"][subkey], key_trace=key_trace + [VALUE_SUBKEY, subkey])
 
         if key not in self.key_metric_map and key_schema["type"] != JSONSchemaKeyType.Object:
             # Use text as the default metric for all keys; 'object' key type should not have its own key
@@ -202,6 +215,48 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             self._populate_key_preprocessor(key=key, type=key_schema["type"])
             self.key_metric_map[key]["key_trace"] = key_trace
 
+    def _detection_preprocess_single_prediction(self, key: str, value: dict):
+        """
+        Preprocessing function for a single detection prediction of the form {"value": <class_name>, "groundings": [[[optional: <score>], <x1>, <y1>, <x2>, <y2>], [...], [...]]}.
+        Args:
+            key: string of the key name.
+            value: dictionary with a "value" key of type string, integer, or float, and a "groundings" list of lists of bounding boxes, optionally with scores.
+        """
+        class_map = self.key_metric_map[key]["class_map"]
+        class_index = class_map.get(str(value[VALUE_SUBKEY]), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY))
+        groundings = value[GROUNDINGS_SUBKEY]
+        if not isinstance(groundings, list):
+            return_pred = [[class_index] + [0.0] + [0., 0., 0., 0.]]
+        else:
+            return_pred = []
+            for grounding in groundings:
+                if not isinstance(grounding, list) or (isinstance(grounding, list) and len(grounding) < 4):
+                    return_pred.append([class_index] + [0.0] + [0., 0., 0., 0.])
+                else:
+                    return_pred.append([class_index] + grounding if len(grounding) == 5 else [class_index] + [1.0] + grounding)
+        return return_pred
+
+    def _detection_preprocess_single_target(self, key: str, value: dict):
+        """
+        Preprocessing function for a single detection target of the form {"value": <class_name>, "groundings": [[<x1>, <y1>, <x2>, <y2>], [...], [...]]}.
+        Args:
+            key: string of the key name.
+            value: dictionary with a "value" key of type string, integer, or float, and a "groundings" list of lists of bounding boxes.
+        """
+        class_map = self.key_metric_map[key]["class_map"]
+        class_index = class_map.get(str(value[VALUE_SUBKEY]), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY))
+        groundings = value[GROUNDINGS_SUBKEY]
+        if not isinstance(groundings, list):
+            return_gt = [[class_map["single_class"]] + [0., 0., 0., 0.]]
+        else:
+            return_gt = []
+            for grounding in groundings:
+                if not isinstance(grounding, list) or (isinstance(grounding, list) and len(grounding) < 4):
+                    return_gt.append([class_index] + [0., 0., 0., 0.])
+                else:
+                    return_gt.append([class_index] + grounding)
+        return return_gt
+
     def _populate_key_preprocessor(self, key: str, type: JSONSchemaKeyType):
         """
         Given a key and the specified JSON Schema type of that key, constructs the preprocessor function corresponding to the key
@@ -213,61 +268,43 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         metric_name = self.key_metric_map[key]["metric_name"]
         if metric_name == SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore:
             # Expects list of strings for predictions, list of list of strings for targets
-            self.key_metric_map[key]["prediction_preprocessor"] = lambda value: str(value)
-            self.key_metric_map[key]["target_preprocessor"] = lambda value: [str(value)]
+            self.key_metric_map[key]["prediction_preprocessor"] = lambda value: str(value[VALUE_SUBKEY])
+            self.key_metric_map[key]["target_preprocessor"] = lambda value: [str(value[VALUE_SUBKEY])]
         elif metric_name == SupportedKeyWiseMetric.Classification_MulticlassAccuracy or metric_name == SupportedKeyWiseMetric.Classification_MulticlassF1:
             # Expects torch int or float tensor of shape (N, ...) or (N, C, ...) for predictions, torch tensor of shape (N, ...) for targets
             class_map = self.key_metric_map[key]["class_map"]
             self.key_metric_map[key]["prediction_preprocessor"] = self.key_metric_map[key]["target_preprocessor"] = \
-                lambda value: class_map.get(str(value), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY))
+                lambda value: class_map.get(str(value[VALUE_SUBKEY]), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY))
         elif metric_name == SupportedKeyWiseMetric.Classification_MultilabelAccuracy or metric_name == SupportedKeyWiseMetric.Classification_MultilabelF1:
             # Expects torch int or float tensor of shape (N, C, ...)
             class_map = self.key_metric_map[key]["class_map"]
 
             def multilabel_preprocess(value: list):
-                class_indices = [class_map.get(v, class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for v in value]
+                class_indices = [class_map.get(v[VALUE_SUBKEY], class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for v in value[VALUE_SUBKEY]]
                 one_hot_list = [1 if class_index in class_indices else 0 for class_index in range(0, len(class_map))]
                 return one_hot_list
             self.key_metric_map[key]["prediction_preprocessor"] = self.key_metric_map[key]["target_preprocessor"] = multilabel_preprocess
         elif metric_name == SupportedKeyWiseMetric.Detection_MeanAveragePrecision or metric_name == SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1:
             # Expects list of list of list of classes, [optionally scores], and bounding box coordinates, e.g., [[[0, 1.0, 0, 0, 10, 10]]]
-            class_map = self.key_metric_map[key]["class_map"]
-            if type == JSONSchemaKeyType.BoundingBox:
-                def detection_preprocess_prediction(value):
-                    if not isinstance(value, list) or (isinstance(value, list) and len(value) < 4):
-                        return_pred = [[class_map["single_class"]] + [1.0] + [0., 0., 0., 0.]]
-                    else:
-                        return_pred = [[class_map["single_class"]] + value] if len(value) == 5 else [[class_map["single_class"]] + [1.0] + value]
-                    return return_pred
-
-                def detection_preprocess_target(value):
-                    if not isinstance(value, list) or (isinstance(value, list) and len(value) < 4):
-                        return_gt = [[class_map["single_class"]] + [0., 0., 0., 0.]]
-                    else:
-                        return_gt = [[class_map["single_class"]] + value]
-                    return return_gt
-                self.key_metric_map[key]["prediction_preprocessor"] = detection_preprocess_prediction
-                self.key_metric_map[key]["target_preprocessor"] = detection_preprocess_target
+            if type in SIMPLE_KEY_TYPES:
+                self.key_metric_map[key]["prediction_preprocessor"] = lambda value: self._detection_preprocess_single_prediction(key, value)
+                self.key_metric_map[key]["target_preprocessor"] = lambda value: self._detection_preprocess_single_target(key, value)
             elif type == JSONSchemaKeyType.Array:
                 def detection_list_preprocess_prediction(value):
+                    value_list = value[VALUE_SUBKEY]
                     return_pred = []
-                    for v in value:
-                        if not isinstance(v, list) or (isinstance(v, list) and len(v) < 4):
-                            return_pred.append([class_map["single_class"]] + [1.0] + [0., 0., 0., 0.])
-                        else:
-                            return_pred.append([class_map["single_class"]] + v if len(v) == 5 else [class_map["single_class"]] + [1.0] + v)
+                    for v in value_list:
+                        return_pred.extend(self._detection_preprocess_single_prediction(key, v))
                     return return_pred
 
                 def detection_list_preprocess_target(value):
+                    value_list = value[VALUE_SUBKEY]
                     return_gt = []
-                    for v in value:
-                        if not isinstance(v, list) or (isinstance(v, list) and len(v) < 4):
-                            return_gt.append([class_map["single_class"]] + [0., 0., 0., 0.])
-                        else:
-                            return_gt.append([class_map["single_class"]] + v)
+                    for v in value_list:
+                        return_gt.extend(self._detection_preprocess_single_target(key, v))
                     return return_gt
                 self.key_metric_map[key]["prediction_preprocessor"] = detection_list_preprocess_prediction
                 self.key_metric_map[key]["target_preprocessor"] = detection_list_preprocess_target
         elif metric_name == SupportedKeyWiseMetric.Regression_MeanAbsoluteError or metric_name == SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score:
             # Expects torch int or float tensor of shape (N)
-            self.key_metric_map[key]["prediction_preprocessor"] = self.key_metric_map[key]["target_preprocessor"] = lambda value: float(value)
+            self.key_metric_map[key]["prediction_preprocessor"] = self.key_metric_map[key]["target_preprocessor"] = lambda value: float(value[VALUE_SUBKEY])
