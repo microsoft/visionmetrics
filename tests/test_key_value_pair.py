@@ -517,33 +517,34 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
                                                 deployment_name=self.DEPLOYMENT)
-        self.assertRaisesRegex(ValueError,
-                               r"The key 'brand_sentiment_has_non_contoso_brands' does not exist in the prediction sample "
-                               r"'{'brand_sentiment': {'value': {'contoso_specific': {'value': {'sentiment': {'value': 'very positive'}, "
-                               r"'logos': {'value': \[{'value': 'text', 'groundings': \[\[0, 0, 100, 100\]\]}\]}}}}}}'.",
-                               evaluator.update,
-                               [{
-                                   "brand_sentiment": {"value": {
-                                       "contoso_specific": {"value": {
-                                           "sentiment": {"value": "very positive"},
-                                           "logos": {"value": [
-                                               {"value": "text", "groundings": [[0, 0, 100, 100]]}
-                                           ]}
-                                        }}
-                                    }}
-                                }],
-                               [{
-                                   "brand_sentiment": {"value": {
-                                       "has_non_contoso_brands": {"value": True},
-                                       "contoso_specific": {"value": {
-                                           "sentiment": {"value": "very positive"},
-                                           "logos": {"value": [
-                                               {"value": "text", "groundings": [[0, 0, 100, 100]]}
-                                           ]}
-                                        }}
-                                    }}
-                                }]
-                               )
+        evaluator.update(predictions=[{
+                            "brand_sentiment": {"value": {
+                                "contoso_specific": {"value": {
+                                    "sentiment": {"value": "very positive"},
+                                    "logos": {"value": [
+                                        {"value": "text", "groundings": [[0, 0, 100, 100]]}
+                                    ]}
+                                }}
+                            }}
+                        }],
+                        targets=[{
+                            "brand_sentiment": {"value": {
+                                "has_non_contoso_brands": {"value": True},
+                                "contoso_specific": {"value": {
+                                    "sentiment": {"value": "very positive"},
+                                    "logos": {"value": [
+                                        {"value": "text", "groundings": [[0, 0, 100, 100]]}
+                                    ]}
+                                }}
+                            }}
+                        }])
+        report = evaluator.compute()
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_has_non_contoso_brands"].item(), 0.)
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_contoso_specific_sentiment"].item(), 1.)
+        self.assertEqual(report["KeyWiseScores"]["brand_sentiment_contoso_specific_logos"]["F1"], 1.)
+
+        self.assertAlmostEqual(report["MicroF1"], 0.8)
+        self.assertAlmostEqual(report["MacroF1"], 0.6666666666666666)
 
     def test_target_missing_key(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,

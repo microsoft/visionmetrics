@@ -125,6 +125,7 @@ class KeyValuePairEvaluatorBase(Metric):
             except Exception as e:
                 raise ValueError(f"Encountered error '{e}' when instantiating metric '{metric_name}' for key '{key}' with arguments '{metric_args}'.")
         self.invalid_predicted_keys = []
+        self.missing_predicted_keys = []
 
     def _get_invalid_keys(self, sample, key_trace: list = [], invalid_keys: list = []):
         if isinstance(sample, dict):
@@ -141,6 +142,7 @@ class KeyValuePairEvaluatorBase(Metric):
         Both predictions and targets should be dictionaries of the form {'<key>': <value>}, where <value> is in the format expected for the respective metric for that key.
         Each sample in predictions and targets must have the same keys (though they do not have to have all the keys in the dataset).
         """
+        # Check for invalid keys in both target (throws an error) and prediction (counted as false positives)
         for prediction, target in zip(predictions, targets):
             target_invalid_keys = []
             self._get_invalid_keys(sample=target, invalid_keys=target_invalid_keys)
@@ -160,8 +162,9 @@ class KeyValuePairEvaluatorBase(Metric):
                 try:
                     key_prediction = reduce(operator.getitem, key_trace, prediction)
                 except KeyError:
-                    # TODO: Need to count this as a false negative instead of not allowing the prediction to exist
-                    raise ValueError(f"The key '{key}' does not exist in the prediction sample '{prediction}'.")
+                    self.missing_predicted_keys.append(key)
+                    logger.debug(f"The key '{key}' does not exist in the prediction sample '{prediction}'.")
+                    continue
                 try:
                     key_target = reduce(operator.getitem, key_trace, target)
                 except KeyError:
@@ -188,7 +191,8 @@ class KeyValuePairEvaluatorBase(Metric):
                 key_targets = torch.tensor(key_targets)
 
             try:
-                metric.update(key_predictions, key_targets)
+                if len(key_predictions) > 0 and len(key_targets) > 0:
+                    metric.update(key_predictions, key_targets)
             except Exception as e:
                 raise ValueError(f"Encountered error '{e}' when updating metric '{self.key_metric_map[key]['metric_name']}' for key '{key}'.")
 
@@ -226,8 +230,10 @@ class KeyValuePairEvaluatorBase(Metric):
                     total_tp += self.key_evaluator_map[key].tp.item()
                     total_fp += self.key_evaluator_map[key].fp.item()
                     total_fn += self.key_evaluator_map[key].fn.item()
+            # Note: Currently, macro_f1 does not take into account missing or invalid keys, only those present in both the target and prediction for each sample.
             macro_f1 = macro_f1 / len(self.key_metric_map)
             total_fp += len(self.invalid_predicted_keys)
+            total_fn += len(self.missing_predicted_keys)
             precision_recall_f1 = precision_recall_f1_scalar(tp=total_tp, fp=total_fp, fn=total_fn)
 
         return {
