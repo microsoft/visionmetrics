@@ -271,7 +271,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                             "description": "The types of Contoso logos present in the image.",
                             "items": {
                                 "type": "string",
-                                "description": "The name of the company whose logo is in the image.",
+                                "description": "The type of Contoso logo in the image.",
                                 "classes": {
                                     "text": {"description": "Contoso's text-only logo."},
                                     "grayscale": {"description": "Contoso's grayscale icon logo."},
