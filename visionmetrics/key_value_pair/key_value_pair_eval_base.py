@@ -41,9 +41,18 @@ METRICS_WITH_TENSOR_INPUT = [SupportedKeyWiseMetric.Classification_MulticlassAcc
 
 class KeyValuePairEvaluatorBase(Metric):
     """
-    Evaluator for evaluating key-value pair datasets, where each key in the labels represents an extracted field with a consistent type (string, number, etc.).
-    It accepts a dictionary mapping the keys to corresponding metric information, and returns the corresponding key-wise set of metrics.
-    Each key can have a different metric for evaluation. The metrics supported are specified in SupportedKeyWiseMetric.
+    Key-value pair extraction refers to the task of arbitrary schema-based structured field extraction. Each schema is an adapted version of a
+    JSON Schema (https://json-schema.org/understanding-json-schema/reference)-formatted dictionary that contains keys, each of which specifies
+    the standard JSON Schema type of the key and a string description, whether to perform grounding on the key, classes for closed-vocabulary
+    values, and additional information describing list items and object properties (sub-keys).
+
+    Based on a key_metric_map dictionary specifying the mapping between each key of such a schema and the corresponding visionmetrics metric, metric arguments,
+    preprocessors for predictions and targets, and a list trace describing the path to the key through the prediction and target objects,
+    this evaluator computes the key-wise metrics for each key in the schema and returns the overall micro F1, macro F1, and key-wise scores in their raw format for each key.
+    Each key can have a different metric. The metrics supported are specified in SupportedKeyWiseMetric.
+    
+    For each key, definitions of true positive, false positive, and false negative are inherited from the corresponding metric.
+    In addition to metric-specific definitions, missing keys in predictions are counted as false negatives, and invalid keys in predictions are counted as false positives.
 
     Args:
         key_metric_map: dictionary from keys (extracted field names) to a dictionary with four required fields:
@@ -53,23 +62,16 @@ class KeyValuePairEvaluatorBase(Metric):
         4. key_trace: list of strings of key names that traces the path to the current key in the key-value pair prediction/target object (not in the schema).
         Examples (corresponding to the examples in key_value_pair_eval.py):
         defect_detection_key_metric_map = {
-            "defect_types": {
-                "metric_name": SupportedKeyWiseMetric.Classification_MultilabelF1,
-                "metric_args": {"num_labels": 5, "average": "micro"},
-                "prediction_preprocessor": <reference to multilabel classification prediction preprocessing function; see example implementation in key_value_pair_eval.py>,
-                "target_preprocessor": <reference to multilabel classification target preprocessing function; see example implementation in key_value_pair_eval.py>,
-                "key_trace": ["defect_types"]
-            },
-            "defect_locations": {
+            "defects": {
                 "metric_name": SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
-                "metric_args": {"box_format": "xyxy", "coords": "absolute"},
+                "metric_args": {"box_format": "xyxy", "coords": "absolute", "iou_threshold": 0.5},
                 "prediction_preprocessor": <reference to detection prediction preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "target_preprocessor": <reference to detection target preprocessing function; see example implementation in key_value_pair_eval.py>,
-                "key_trace": ["defect_locations"]
+                "key_trace": ["defects"]
             },
             "rationale": {
                 "metric_name": SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
-                "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT},
+                "metric_args": {"endpoint": <endpoint>, "deployment_name": <deployment>},
                 "prediction_preprocessor": <reference to captioning prediction preprocessing function; see example implementations in key_value_pair_eval.py>,
                 "target_preprocessor": <reference to captioning target preprocessing function; see example implementations in key_value_pair_eval.py>,
                 "key_trace": ["rationale"]
@@ -90,12 +92,12 @@ class KeyValuePairEvaluatorBase(Metric):
                 "target_preprocessor": <reference to multiclass classification target preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "key_trace": ["brand_sentiment", "value", "contoso_specific", "value", "sentiment"]
             },
-            "brand_sentiment_contoso_specific_logo_bounding_box": {
+            "brand_sentiment_contoso_specific_logos": {
                 "metric_name": SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
-                "metric_args": {"box_format": "xyxy", "coords": "absolute"},
+                "metric_args": {"box_format": "xyxy", "coords": "absolute", "iou_threshold": 0.5},
                 "prediction_preprocessor": <reference to detection prediction preprocessing function; see example implementation in key_value_pair_eval.py>,
                 "target_preprocessor": <reference to detection target preprocessing function; see example implementation in key_value_pair_eval.py>,
-                "key_trace": ["brand_sentiment", "value", "contoso_specific", "value", "logo_bounding_box"]
+                "key_trace": ["brand_sentiment", "value", "contoso_specific", "value", "logos"]
             }
         }
     }

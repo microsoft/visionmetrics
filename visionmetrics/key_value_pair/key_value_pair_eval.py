@@ -27,7 +27,21 @@ DESCRIPTION_SUBKEY = "description"
 
 class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
     """
-    Evaluator for a key-value pair dataset. The default evaluator (if the key does not have values of a particular form) is the caption.AzureOpenAITextModelCategoricalScore due to its flexibility.
+    Key-value pair extraction refers to the task of arbitrary schema-based structured field extraction. Each schema is an adapted version of a
+    JSON Schema (https://json-schema.org/understanding-json-schema/reference)-formatted dictionary that contains keys, each of which specifies
+    the standard JSON Schema type of the key and a string description, whether to perform grounding on the key, classes for closed-vocabulary
+    values, and additional information describing list items and object properties (sub-keys).
+
+    Exceptions to the standard JSON Schema format are:
+    - Usage of a "classes" dictionary instead of an "enum" list of allowed values for closed-vocabulary keys. The dictionary has the key "description"
+    that describes the class in further detail, and the dictionary may in the future support other keys as well.
+    - Usage of an "includeGrounding" boolean for each field, indicating whether the field should be grounded (whether a bounding box is returned for the field or not).
+
+    Based on the properties defined in the JSON Schema, this class infers the best evaluation metric for each key's data type, and defaults to text-based evaluation
+    for cases that have no clear inferrable metric. It then constructs the key_metric_map specifying the mapping between each key of such a schema and the corresponding
+    visionmetrics metric, metric arguments, preprocessors for predictions and targets, and a list trace describing the path to the key through the prediction and target objects.
+    Evaluation and metric computation are done through the parent class, KeyValuePairEvaluatorBase. Supported key-wise metrics are enumerated in KeyValuePairEvaluatorBase.SupportedKeyWiseMetric.
+
     Args:
         key_value_pair_schema: dictionary in JSON Schema format indicating each key and expected value type for each extracted field.
         Examples (corresponding to the examples in key_value_pair_eval_base.py):
@@ -37,7 +51,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                 "description": "The defect types present in the image.",
                 "items": {
                     "type": "string",
-                    "description": "The type of defect detected",
+                    "description": "The type of defect detected.",
                     "classes": {
                         "scratch": {"description": "Long, thin, surface-level mark."},
                         "dent": {"description": "Appears to be caving in toward the material."},
@@ -98,6 +112,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
 
         endpoint: string of the Azure OpenAI endpoint to be used as the default text evaluator.
         deployment_name: string of the Azure OpenAI deployment name to be used for the default text evaluator.
+
         The latter two arguments follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel;
         see https://github.com/microsoft/irisml-tasks-azure-openai/blob/main/irisml/tasks/create_azure_openai_chat_model.py.
     """
