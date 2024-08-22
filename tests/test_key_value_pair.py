@@ -104,8 +104,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     }
     simple_list_key_metric_map = {
         "defects": {
-            "metric_name": SupportedKeyWiseMetric.Classification_MultilabelF1,
-            "metric_args": {"num_labels": 5, "average": "micro"},
+            "metric_name": SupportedKeyWiseMetric.Classification_MultilabelF1WithDuplicates,
+            "metric_args": {},
             "class_map": {"scratch": 0, "dent": 1, "discoloration": 2, "crack": 3, "<|other|>": 4},
             "key_trace": ["defects"]
         }
@@ -378,10 +378,12 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                                 ]}
                             }])
             report = evaluator.compute()
-            self.assertEqual(report["KeyWiseScores"]["defects"].item(), 0.5)
+            self.assertAlmostEqual(report["KeyWiseScores"]["defects"]["Precision"], 0.3333333333333333)
+            self.assertEqual(report["KeyWiseScores"]["defects"]["Recall"], 0.5)
+            self.assertEqual(report["KeyWiseScores"]["defects"]["F1"], 0.4)
 
-            self.assertEqual(report["MicroF1"], 0.5)
-            self.assertAlmostEqual(report["MacroF1"], 0.5)
+            self.assertEqual(report["MicroF1"], 0.4)
+            self.assertAlmostEqual(report["MacroF1"], 0.4)
 
     def test_simple_list_grounding_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.simple_list_grounding_schema,

@@ -9,7 +9,7 @@ from visionmetrics.classification import (BinaryAUROC, MulticlassAccuracy,
                                           MulticlassPrecision,
                                           MultilabelAccuracy, MultilabelAUROC,
                                           MultilabelAveragePrecision,
-                                          MultilabelF1Score,
+                                          MultilabelF1Score, MultilabelF1ScoreWithDuplicates,
                                           MultilabelPrecision,
                                           MultilabelRecall)
 
@@ -260,6 +260,116 @@ class TestROCAUC(unittest.TestCase):
         targets = torch.tensor([[1, 0, 0], [1, 0, 0], [0, 1, 1], [0, 1, 0], [0, 1, 1], [0, 1, 1]])
         roc_auc = self._get_metric(predictions, targets, task='multilabel', num_classes=3)
         self.assertAlmostEqual(roc_auc.item(), 1.0, places=4)
+
+
+class TestMultilabelF1ScoreWithDuplicates(unittest.TestCase):
+    def test_perfect_predictions_same_order(self):
+        evaluator = MultilabelF1ScoreWithDuplicates()
+        predictions = [['a', 'b', 'c', 'c', 'a']]
+        targets = [['a', 'b', 'c', 'c', 'a']]
+        evaluator.update(predictions, targets)
+        report = evaluator.compute()
+        self.assertAlmostEqual(report["Precision"], 1.0)
+        self.assertAlmostEqual(report["Recall"], 1.0)
+        self.assertAlmostEqual(report["F1"], 1.0)
+
+    def test_perfect_predictions_different_order(self):
+        evaluator = MultilabelF1ScoreWithDuplicates()
+        predictions = [['a', 'b', 'c', 'c', 'a']]
+        targets = [['a', 'a', 'c', 'b', 'c']]
+        evaluator.update(predictions, targets)
+        report = evaluator.compute()
+        self.assertAlmostEqual(report["Precision"], 1.0)
+        self.assertAlmostEqual(report["Recall"], 1.0)
+        self.assertAlmostEqual(report["F1"], 1.0)
+
+    def test_completely_incorrect_predictions(self):
+        evaluator = MultilabelF1ScoreWithDuplicates()
+        predictions = [['a', 'b', 'c', 'c', 'a']]
+        targets = [['absolutely', 'completely', 'wrong']]
+        evaluator.update(predictions, targets)
+        report = evaluator.compute()
+        self.assertAlmostEqual(report["Precision"], 0.0)
+        self.assertAlmostEqual(report["Recall"], 0.0)
+        self.assertAlmostEqual(report["F1"], 0.0)
+
+    def test_imperfect_predictions(self):
+        evaluator = MultilabelF1ScoreWithDuplicates()
+        predictions = [['a', 'b', 'c', 'c', 'a']]
+        targets = [['a', 'd', 'b', 'c']]
+        evaluator.update(predictions, targets)
+        report = evaluator.compute()
+        self.assertAlmostEqual(report["Precision"], 0.6)
+        self.assertAlmostEqual(report["Recall"], 0.75)
+        self.assertAlmostEqual(report["F1"], 0.6666666666666666)
+
+    def test_no_predictions(self):
+        evaluator = MultilabelF1ScoreWithDuplicates()
+        predictions = [[]]
+        targets = [['d', 'e', 'f']]
+        evaluator.update(predictions, targets)
+        report = evaluator.compute()
+        self.assertAlmostEqual(report["Precision"], 0.0)
+        self.assertAlmostEqual(report["Recall"], 0.0)
+        self.assertAlmostEqual(report["F1"], 0.0)
+
+    def test_no_targets(self):
+        evaluator = MultilabelF1ScoreWithDuplicates()
+        predictions = [['d', 'e', 'f']]
+        targets = [[]]
+        evaluator.update(predictions, targets)
+        report = evaluator.compute()
+        self.assertAlmostEqual(report["Precision"], 0.0)
+        self.assertAlmostEqual(report["Recall"], 0.0)
+        self.assertAlmostEqual(report["F1"], 0.0)
+
+    def test_no_false_positives(self):
+        evaluator = MultilabelF1ScoreWithDuplicates()
+        predictions = [['a', 'b', 'c', 'c', 'a']]
+        targets = [['a', 'a', 'b', 'c', 'c', 'd', 'e', 'f', 'g', 'd']]
+        evaluator.update(predictions, targets)
+        report = evaluator.compute()
+        self.assertAlmostEqual(report["Precision"], 1.0)
+        self.assertAlmostEqual(report["Recall"], 0.5)
+        self.assertAlmostEqual(report["F1"], 0.6666666666666666)
+
+    def test_no_false_negatives(self):
+        evaluator = MultilabelF1ScoreWithDuplicates()
+        predictions = [['a', 'a', 'b', 'c', 'c', 'd', 'e', 'f', 'g', 'd']]
+        targets = [['a', 'b', 'c', 'c', 'a']]
+        evaluator.update(predictions, targets)
+        report = evaluator.compute()
+        self.assertAlmostEqual(report["Precision"], 0.5)
+        self.assertAlmostEqual(report["Recall"], 1.0)
+        self.assertAlmostEqual(report["F1"], 0.6666666666666666)
+
+    def test_batch_update(self):
+        evaluator = MultilabelF1ScoreWithDuplicates()
+        predictions = [['a', 'b', 'c', 'c', 'a']]
+        targets = [['a', 'd', 'b', 'c']]
+        evaluator.update(predictions, targets)
+        report = evaluator.compute()
+        self.assertAlmostEqual(report["Precision"], 0.6)
+        self.assertAlmostEqual(report["Recall"], 0.75)
+        self.assertAlmostEqual(report["F1"], 0.6666666666666666)
+
+        predictions = [['d', 'e', 'f', 'f', 'f']]
+        targets = [['d', 'e', 'f', 'f']]
+        evaluator.update(predictions, targets)
+        report = evaluator.compute()
+        self.assertAlmostEqual(report["Precision"], 0.7)
+        self.assertAlmostEqual(report["Recall"], 0.875)
+        self.assertAlmostEqual(report["F1"], 0.7777777777777777)
+
+    def test_two_images(self):
+        evaluator = MultilabelF1ScoreWithDuplicates()
+        predictions = [['a', 'b', 'c', 'c', 'a'], ['d', 'e', 'f', 'f', 'f']]
+        targets = [['a', 'd', 'b', 'c'], ['d', 'e', 'f', 'f']]
+        evaluator.update(predictions, targets)
+        report = evaluator.compute()
+        self.assertAlmostEqual(report["Precision"], 0.7)
+        self.assertAlmostEqual(report["Recall"], 0.875)
+        self.assertAlmostEqual(report["F1"], 0.7777777777777777)
 
 
 if __name__ == "__main__":

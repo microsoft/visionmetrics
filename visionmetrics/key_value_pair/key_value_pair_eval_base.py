@@ -18,6 +18,7 @@ class SupportedKeyWiseMetric(str, Enum):
     Classification_MultilabelAccuracy = "classification.MultilabelAccuracy"
     Classification_MulticlassF1 = "classification.MulticlassF1Score"
     Classification_MultilabelF1 = "classification.MultilabelF1Score"
+    Classification_MultilabelF1WithDuplicates = "classification.MultilabelF1ScoreWithDuplicates"
     Detection_MeanAveragePrecision = "detection.MeanAveragePrecision"
     Detection_MicroPrecisionRecallF1 = "detection.DetectionMicroPrecisionRecallF1"
     Regression_MeanAbsoluteError = "regression.MeanAbsoluteError"
@@ -29,6 +30,7 @@ SUPPORTED_F1_METRICS = [
     SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
     SupportedKeyWiseMetric.Classification_MulticlassF1,
     SupportedKeyWiseMetric.Classification_MultilabelF1,
+    SupportedKeyWiseMetric.Classification_MultilabelF1WithDuplicates,
     SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
     SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score
 ]
@@ -225,7 +227,9 @@ class KeyValuePairEvaluatorBase(Metric):
                     total_tp += self.key_evaluator_map[key].tp.sum().item()
                     total_fp += self.key_evaluator_map[key].fp.sum().item()
                     total_fn += self.key_evaluator_map[key].fn.sum().item()
-                elif metric_name == SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1 or metric_name == SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score:
+                elif metric_name in [SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
+                                     SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score,
+                                     SupportedKeyWiseMetric.Classification_MultilabelF1WithDuplicates]:
                     macro_f1 += key_wise_scores[key]["F1"]
                     total_tp += self.key_evaluator_map[key].tp.item()
                     total_fp += self.key_evaluator_map[key].fp.item()
