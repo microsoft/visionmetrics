@@ -286,8 +286,8 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             self.key_metric_map[key]["prediction_preprocessor"] = self.key_metric_map[key]["target_preprocessor"] = multilabel_preprocess
         elif metric_name == SupportedKeyWiseMetric.Classification_MultilabelF1WithDuplicates:
             class_map = self.key_metric_map[key]["class_map"]
-            multilabel_with_duplicates_preprocess = lambda value: [class_map.get(v[VALUE_SUBKEY], class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for v in value[VALUE_SUBKEY]]
-            self.key_metric_map[key]["prediction_preprocessor"] = self.key_metric_map[key]["target_preprocessor"] = multilabel_with_duplicates_preprocess
+            self.key_metric_map[key]["prediction_preprocessor"] = self.key_metric_map[key]["target_preprocessor"] = \
+                lambda value: [class_map.get(v[VALUE_SUBKEY], class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY)) for v in value[VALUE_SUBKEY]]
         elif metric_name == SupportedKeyWiseMetric.Detection_MeanAveragePrecision or metric_name == SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1:
             # Expects list of list of list of classes, [optionally scores], and bounding box coordinates, e.g., [[[0, 1.0, 0, 0, 10, 10]]]
             if type in SIMPLE_KEY_TYPES:
