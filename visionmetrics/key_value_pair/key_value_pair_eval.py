@@ -34,7 +34,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
 
     Exceptions to the standard JSON Schema format are:
     - Usage of a "classes" dictionary instead of an "enum" list of allowed values for closed-vocabulary keys. The dictionary has the key "description"
-    that describes the class in further detail, and the dictionary may in the future support other keys as well.
+      that describes the class in further detail, and the dictionary may in the future support other keys as well.
     - Usage of an "includeGrounding" boolean for each field, indicating whether the field should be grounded (whether a bounding box is returned for the field or not).
 
     Based on the properties defined in the JSON Schema, this class infers the best evaluation metric for each key's data type, and defaults to text-based evaluation

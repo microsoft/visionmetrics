@@ -50,7 +50,7 @@ class KeyValuePairEvaluatorBase(Metric):
     preprocessors for predictions and targets, and a list trace describing the path to the key through the prediction and target objects,
     this evaluator computes the key-wise metrics for each key in the schema and returns the overall micro F1, macro F1, and key-wise scores in their raw format for each key.
     Each key can have a different metric. The metrics supported are specified in SupportedKeyWiseMetric.
-    
+
     For each key, definitions of true positive, false positive, and false negative are inherited from the corresponding metric.
     In addition to metric-specific definitions, missing keys in predictions are counted as false negatives, and invalid keys in predictions are counted as false positives.
 
