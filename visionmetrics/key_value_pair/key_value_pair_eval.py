@@ -22,7 +22,6 @@ OUT_OF_DISTRIBUTION_ENUM_KEY = "<|other|>"
 # Constants for predictions and targets
 VALUE_SUBKEY = "value"
 GROUNDINGS_SUBKEY = "groundings"
-DESCRIPTION_SUBKEY = "description"
 
 
 class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
@@ -46,42 +45,33 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         defect_detection_schema = {
             "defects": {
                 "type": "array",
-                "description": "The defect types present in the image.",
                 "items": {
                     "type": "string",
-                    "description": "The type of defect detected.",
                     "enum": ["scratch", "dent", "discoloration", "crack"],
                     "includeGrounding": True
                 }
             },
             "rationale": {
-                "type": "string",
-                "description": "Rationale for the identified defects."
+                "type": "string"
             }
         }
         "brand_sentiment": {
             "type": "object",
-            "description": "Attributes of sentiment toward brands depicted in the image.",
             "properties": {
                 "has_non_contoso_brands": {
-                    "type": "boolean",
-                    "description": "Whether the image depicts or contains anything about non-Contoso brands."
+                    "type": "boolean"
                 },
                 "contoso_specific": {
                     "type": "object",
-                    "description": "Sentiment related specifically to the company Contoso.",
                     "properties": {
                         "sentiment": {
                             "type": "string",
-                            "description": "Sentiment toward the brand as depicted in the image.",
                             "enum": ["very positive", "somewhat positive", "neutral", "somewhat negative", "negative"]
                         },
                         "logos": {
                             "type": "array",
-                            "description": "The type of Contoso logo in the image.",
                             "items": {
                                 "type": "string",
-                                "description": "The name of the company whose logo is in the image.",
                                 "enum": ["text", "grayscale", "rgb"],
                                 "includeGrounding": True
                             }
@@ -171,7 +161,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                                                    metric_name=SupportedKeyWiseMetric.Regression_MeanAbsoluteErrorF1Score,
                                                    metric_args={"error_threshold": 0.0})
         elif key_schema["type"] == JSONSchemaKeyType.Boolean:
-            class_map = self._get_enum_class_map({True: {DESCRIPTION_SUBKEY: ""}, False: {DESCRIPTION_SUBKEY: ""}})
+            class_map = self._get_enum_class_map([True, False])
             if "includeGrounding" in key_schema:
                 self._assign_key_metric_map_values(key=key,
                                                    metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
