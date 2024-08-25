@@ -27,27 +27,13 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
         "activity": {
             "type": "string",
             "description": "The most salient activity of the chinchillas in the image.",
-            "classes": {
-                "sleeping": {"description": "Eyes closed, potentially in supine position."},
-                "running": {"description": "Actively appearing to be running."},
-                "playing": {"description": "Appearing to be interacting amicably with others."},
-                "fighting": {"description": "Appearing to be interacting aggressively with others."},
-                "eating": {"description": "Consuming food."},
-                "drinking": {"description": "Consuming water or other liquids."},
-                "none": {"description": "None of the other choices."}
-            },
+            "enum": ["sleeping", "running", "playing", "fighting", "eating", "drinking", "none"],
             "includeGrounding": True
         },
         "cage_number": {
             "type": "integer",
             "description": "The cage number being shown in the scene.",
-            "classes": {
-                1: {"description": "The number 1."},
-                2: {"description": "The number 2."},
-                3: {"description": "The number 3."},
-                4: {"description": "The number 4."},
-                5: {"description": "The number 5."}
-            }
+            "enum": [1, 2, 3, 4, 5]
         }
     }
     simple_key_metric_map = {
@@ -93,12 +79,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
             "items": {
                 "type": "string",
                 "description": "The type of defect detected",
-                "classes": {
-                    "scratch": {"description": "Long, thin, surface-level mark."},
-                    "dent": {"description": "Appears to be caving in toward the material."},
-                    "discoloration": {"description": "Coloration is abnormal."},
-                    "crack": {"description": "Deeper mark than a scratch."}
-                }
+                "enum": ["scratch", "dent", "discoloration", "crack"]
             }
         }
     }
@@ -118,12 +99,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
             "items": {
                 "type": "string",
                 "description": "The type of defect detected",
-                "classes": {
-                    "scratch": {"description": "Long, thin, surface-level mark."},
-                    "dent": {"description": "Appears to be caving in toward the material."},
-                    "discoloration": {"description": "Coloration is abnormal."},
-                    "crack": {"description": "Deeper mark than a scratch."}
-                },
+                "enum": ["scratch", "dent", "discoloration", "crack"],
                 "includeGrounding": True
             }
         }
@@ -147,12 +123,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                     "defect_type": {
                         "type": "string",
                         "description": "The type of defect detected",
-                        "classes": {
-                            "scratch": {"description": "Long, thin, surface-level mark."},
-                            "dent": {"description": "Appears to be caving in toward the material."},
-                            "discoloration": {"description": "Coloration is abnormal."},
-                            "crack": {"description": "Deeper mark than a scratch."}
-                        },
+                        "enum": ["scratch", "dent", "discoloration", "crack"],
                         "includeGrounding": True
                     },
                     "explanation": {
@@ -175,16 +146,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
         "chart_type": {
             "type": "string",
             "description": "The type of chart shown in the image.",
-            "classes": {
-                "line": {"description": "Talks about a trend, usually over time."},
-                "bar": {"description": "Looks like single bars, could be horizontal or vertical."},
-                "pie": {"description": "Looks like a round circle divided into segments to depict proportions."},
-                "scatter": {"description": "Often many dots plotted on a chart to show an overall trend."},
-                "waterfall": {"description": "Like a bar chart, but the bars are separated and show the change over time in the bar's value."},
-                "histogram": {"description": "Like a bar chart, but over continuous values."},
-                "gantt": {"description": "Tracks the progress of something over time with each item represented by a bar, with different start and end points for each bar."},
-                "heatmap": {"description": "Shows the distribution of a value over an area using different shades or colors."}
-            }
+            "enum": ["line", "bar", "pie", "scatter", "waterfall", "histogram", "gantt", "heatmap"]
         },
         "chart_title": {
             "type": "string",
@@ -258,13 +220,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                         "sentiment": {
                             "type": "string",
                             "description": "Sentiment toward the brand as depicted in the image.",
-                            "classes": {
-                                "very positive": {"description": "The greatest possible positive depiction."},
-                                "somewhat positive": {"description": "Clearly positive, but not effusive."},
-                                "neutral": {"description": "Does not have a clear sentiment."},
-                                "somewhat negative": {"description": "Clearly negative, but not effusive."},
-                                "very negative": {"description": "The greatest possible negative depiction."}
-                            }
+                            "enum": ["very positive", "somewhat positive", "neutral", "somewhat negative", "very negative"]
                         },
                         "logos": {
                             "type": "array",
@@ -272,11 +228,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
                             "items": {
                                 "type": "string",
                                 "description": "The type of Contoso logo in the image.",
-                                "classes": {
-                                    "text": {"description": "Contoso's text-only logo."},
-                                    "grayscale": {"description": "Contoso's grayscale icon logo."},
-                                    "rgb": {"description": "Contoso's RGB icon logo."}
-                                },
+                                "enum": ["text", "grayscale", "rgb"],
                                 "includeGrounding": True
                             }
                         }

@@ -33,9 +33,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
     values, and additional information describing list items and object properties (sub-keys).
 
     Exceptions to the standard JSON Schema format are:
-    - Usage of a "classes" dictionary instead of an "enum" list of allowed values for closed-vocabulary keys. The dictionary has the key "description"
-      that describes the class in further detail, and the dictionary may in the future support other keys as well.
-    - Usage of an "includeGrounding" boolean for each field, indicating whether the field should be grounded (whether a bounding box is returned for the field or not).
+    - Usage of an "includeGrounding" boolean for each field, indicating whether the field's annotations are grounded (whether each has a list of bounding boxes) or not.
 
     Based on the properties defined in the JSON Schema, this class infers the best evaluation metric for each key's data type, and defaults to text-based evaluation
     for cases that have no clear inferrable metric. It then constructs the key_metric_map specifying the mapping between each key of such a schema and the corresponding
@@ -52,12 +50,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                 "items": {
                     "type": "string",
                     "description": "The type of defect detected.",
-                    "classes": {
-                        "scratch": {"description": "Long, thin, surface-level mark."},
-                        "dent": {"description": "Appears to be caving in toward the material."},
-                        "discoloration": {"description": "Coloration is abnormal."},
-                        "crack": {"description": "Deeper mark than a scratch."}
-                    },
+                    "enum": ["scratch", "dent", "discoloration", "crack"],
                     "includeGrounding": True
                 }
             },
@@ -81,13 +74,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                         "sentiment": {
                             "type": "string",
                             "description": "Sentiment toward the brand as depicted in the image.",
-                            "classes": {
-                                "very positive": {"description": "The greatest possible positive depiction."},
-                                "somewhat positive": {"description": "Clearly positive, but not effusive."},
-                                "neutral": {"description": "Does not have a clear sentiment."},
-                                "somewhat negative": {"description": "Clearly negative, but not effusive."},
-                                "very negative": {"description": "The greatest possible negative depiction."}
-                            }
+                            "enum": ["very positive", "somewhat positive", "neutral", "somewhat negative", "negative"]
                         },
                         "logos": {
                             "type": "array",
@@ -95,11 +82,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                             "items": {
                                 "type": "string",
                                 "description": "The name of the company whose logo is in the image.",
-                                "classes": {
-                                    "text": {"description": "Contoso's text-only logo."},
-                                    "grayscale": {"description": "Contoso's grayscale icon logo."},
-                                    "rgb": {"description": "Contoso's RGB icon logo."}
-                                },
+                                "enum": ["text", "grayscale", "rgb"],
                                 "includeGrounding": True
                             }
                         }
@@ -131,14 +114,14 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
 
         super().__init__(key_metric_map=self.key_metric_map)
 
-    def _get_enum_class_map(self, classes: dict):
+    def _get_enum_class_map(self, classes: list):
         """
-        Constructs and returns a class map from string class names to integer class indices,
-        used in preprocessing values that have classes, which are evaluated using classification and detection metrics.
+        Constructs and returns an enum class map from string class names to integer class indices,
+        used in preprocessing enum-type values that are evaluated using classification and detection metrics.
         Args:
-            classes: dict of class names to dicts of class descriptions and other potential values. Class names can be strings, integers, or floats.
+            classes: list of class names. Class names can be strings, integers, or floats.
         """
-        class_map = {str(class_name): i for i, class_name in enumerate(classes.keys())}
+        class_map = {str(class_name): i for i, class_name in enumerate(classes)}
         # Reserve one class to catch cases where predictions are not in the set of expected classes
         class_map[OUT_OF_DISTRIBUTION_ENUM_KEY] = len(class_map)
         return class_map
@@ -171,8 +154,8 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             key_trace: list of strings of key names that traces the path to the current key in the key-value pair prediction/target object (not in the schema).
         """
         if key_schema["type"] in [JSONSchemaKeyType.String, JSONSchemaKeyType.Number, JSONSchemaKeyType.Integer]:
-            if "classes" in key_schema:
-                class_map = self._get_enum_class_map(key_schema["classes"])
+            if "enum" in key_schema:
+                class_map = self._get_enum_class_map(key_schema["enum"])
                 if "includeGrounding" in key_schema:
                     self._assign_key_metric_map_values(key=key,
                                                        metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
@@ -202,8 +185,8 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         elif key_schema["type"] == JSONSchemaKeyType.Array:
             # For more complex arrays, we default to the caption evaluator
             if key_schema["items"]["type"] in SIMPLE_KEY_TYPES:
-                if "classes" in key_schema["items"]:
-                    class_map = self._get_enum_class_map(key_schema["items"]["classes"])
+                if "enum" in key_schema["items"]:
+                    class_map = self._get_enum_class_map(key_schema["items"]["enum"])
                     if "includeGrounding" in key_schema["items"]:
                         self._assign_key_metric_map_values(key=key,
                                                            metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
@@ -262,7 +245,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         class_index = class_map.get(str(value[VALUE_SUBKEY]), class_map.get(OUT_OF_DISTRIBUTION_ENUM_KEY))
         groundings = value[GROUNDINGS_SUBKEY]
         if not isinstance(groundings, list):
-            return_gt = [[class_map["single_class"]] + [0., 0., 0., 0.]]
+            return_gt = [[0, 0., 0., 0., 0.]]
         else:
             return_gt = []
             for grounding in groundings:
