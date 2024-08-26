@@ -5,6 +5,8 @@ from irisml.tasks.create_azure_openai_chat_model import OpenAITextChatModel
 import logging
 from torchmetrics import Metric
 
+from visionmetrics.common.utils import precision_recall_f1_scalar
+
 logger = logging.getLogger(__name__)
 
 
@@ -17,6 +19,7 @@ MULTIPLE_RESPONSES_DELIMITER = "<|delimiter|>"
 
 # Evaluator separator constants for joining multiple ground truth values
 OR_SEPARATOR = " <|OR|> "
+AND_SEPARATOR = " <|AND|> "
 
 
 # Enum for per-value result status type
@@ -40,7 +43,8 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
                         an exact match for either a prediction or target to be considered negative. TODO: Implement fuzzy negative matching. Scores are always computed so they
                         can be used for average_score computation.
 
-        Other parameters follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel.
+        Other parameters follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel;
+        see https://github.com/microsoft/irisml-tasks-azure-openai/blob/main/irisml/tasks/create_azure_openai_chat_model.py.
     """
     def __init__(self, endpoint: str, deployment_name: str, system_message: str, prompt_template: str,
                  temperature=0.0, max_tokens=50, requests_interval=30, num_responses=1, positive_threshold=0.5, negative_value=''):
@@ -82,8 +86,9 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
             logger.debug(f"Failed to parse raw_score \"{raw_score}\" to numeric value; returning 0.")
         return score
 
-    def update(self, predictions, targets):
-        """ Evaluate list of predicted results using OpenAI text model.
+    def update(self, predictions, targets, multi_target_separator=AND_SEPARATOR):
+        """
+        Evaluate list of predicted results using Azure OpenAI text model.
         Args:
             predictions: list of string predictions [text1, text2, ...], shape: (N, ), type: string
             targets: list of one or more string ground truth values: [[gt1, gt2, ...], [gt1, gt2, ...], ...], type: string
@@ -98,7 +103,7 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
 
         for prediction, target in zip(predictions, targets):
             prompt = self.prompt_template.replace(PREDICTION_PLACEHOLDER, prediction)
-            final_target = OR_SEPARATOR.join(target)
+            final_target = multi_target_separator.join(target)
             prompt = prompt.replace(TARGET_PLACEHOLDER, final_target)
 
             if prediction == target:
@@ -135,20 +140,9 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
             result_counts[ResultStatusType.FalseNegative], \
             result_counts[ResultStatusType.FalsePositiveGtNull], \
             result_counts[ResultStatusType.FalsePositiveGtNotNull]
+        precision_recall_f1 = precision_recall_f1_scalar(tp=tp, fp=fp_gt_null + fp_gt_not_null, fn=fn + fp_gt_not_null)
         try:
-            precision = tp / (tp + fp_gt_null + fp_gt_not_null)
-        except ZeroDivisionError:
-            precision = 0.
-        try:
-            recall = tp / (tp + fn + fp_gt_not_null)
-        except ZeroDivisionError:
-            recall = 0.
-        try:
-            f1 = (2 * precision * recall) / (precision + recall)
-        except ZeroDivisionError:
-            f1 = 0
-        try:
-            accuracy = tp + tn / (tp + tn + fn + fp_gt_null + fp_gt_not_null)
+            accuracy = (tp + tn) / (tp + tn + fn + fp_gt_null + fp_gt_not_null)
         except ZeroDivisionError:
             accuracy = 0.
         try:
@@ -157,9 +151,9 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
             average_score = 0.
         return {
             # Summary statistics
-            "Precision": precision,
-            "Recall": recall,
-            "F1": f1,
+            "Precision": precision_recall_f1["Precision"],
+            "Recall": precision_recall_f1["Recall"],
+            "F1": precision_recall_f1["F1"],
             "Accuracy": accuracy,
             "AverageScore": average_score,
             # Raw statistic counts

@@ -2,6 +2,8 @@ import torch
 from torchmetrics import Metric
 from typing import List
 
+from visionmetrics.common.utils import precision_recall_f1_scalar
+
 
 class DetectionConfusionMatrix(Metric):
     """
@@ -147,6 +149,9 @@ class DetectionConfusionMatrix(Metric):
         float
             in [0, 1]
         """
+        if box1 == box2:
+            return 1.
+
         x1_min, y1_min, x1_max, y1_max = box1
         x2_min, y2_min, x2_max, y2_max = box2
 
@@ -167,3 +172,25 @@ class DetectionConfusionMatrix(Metric):
         iou_value = intersection / union if union != 0 else 0
 
         return iou_value
+
+
+class DetectionMicroPrecisionRecallF1(DetectionConfusionMatrix):
+    """
+    Calculates and returns the precision, recall, and F1 in the context of object detection based on the confusion matrix.
+    All arguments are the same as DetectionConfusionMatrix, except for:
+        iou_threshold: float between [0.0, 1.0] inclusive indicating the threshold (exclusive) of overlap between predicted and ground truth bounding boxes
+        above which a detection is considered a true positive.
+    """
+    def __init__(self, iou_threshold=0.5, box_format='xyxy', coords='relative'):
+        super().__init__(iou_threshold=iou_threshold)
+        # TODO: add support for other box formats
+        if box_format != 'xyxy':
+            raise ValueError(f'Expected box format to be "xyxy", got {box_format}')
+        self.box_format = box_format
+        self.coords = coords
+
+    def compute(self):
+        tp = self.tp.item()
+        fp = self.fp.item()
+        fn = self.fn.item()
+        return precision_recall_f1_scalar(tp=tp, fp=fp, fn=fn)

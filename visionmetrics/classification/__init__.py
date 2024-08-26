@@ -19,5 +19,6 @@ from visionmetrics.classification.precision_recall import (MulticlassF1Score,
                                                            MulticlassPrecision,
                                                            MulticlassRecall,
                                                            MultilabelF1Score,
+                                                           MultilabelF1ScoreWithDuplicates,
                                                            MultilabelPrecision,
                                                            MultilabelRecall)

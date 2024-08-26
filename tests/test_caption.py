@@ -1,10 +1,9 @@
+from irisml.tasks.create_azure_openai_chat_model import OpenAITextChatModel
 import json
 import pathlib
 import unittest
-from irisml.tasks.create_azure_openai_chat_model import OpenAITextChatModel
 
-from visionmetrics.caption import BleuScore, CIDErScore, METEORScore, ROUGELScore
-from visionmetrics.caption.azure_openai_model_eval import AzureOpenAITextModelCategoricalScore
+from visionmetrics.caption import BleuScore, CIDErScore, METEORScore, ROUGELScore, AzureOpenAITextModelCategoricalScore
 from visionmetrics.caption.azure_openai_model_eval_base import ResultStatusType
 
 
@@ -86,7 +85,7 @@ class TestAzureOpenAITextModelCategoricalEvaluator(unittest.TestCase):
         "Precision": 0.5,
         "Recall": 0.5,
         "F1": 0.5,
-        "Accuracy": 2.1666666666666665,
+        "Accuracy": 0.5,
         # Raw statistic counts
         "TP": 2,
         "TN": 1,

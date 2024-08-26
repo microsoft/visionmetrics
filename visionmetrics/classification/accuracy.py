@@ -1,4 +1,5 @@
 import torchmetrics
+
 from visionmetrics.classification.common import MulticlassMixin
 
 
