@@ -47,7 +47,7 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
         see https://github.com/microsoft/irisml-tasks-azure-openai/blob/main/irisml/tasks/create_azure_openai_chat_model.py.
     """
     def __init__(self, endpoint: str, deployment_name: str, system_message: str, prompt_template: str,
-                 temperature=0.0, max_tokens=50, requests_interval=30, num_responses=1, positive_threshold=0.5, negative_value=''):
+                 temperature=0.0, max_tokens=50, requests_interval=0, num_responses=1, positive_threshold=0.5, negative_value=''):
         super().__init__()
         if PREDICTION_PLACEHOLDER not in prompt_template or TARGET_PLACEHOLDER not in prompt_template:
             raise ValueError("Both the predicted placeholder {PREDICTION_PLACEHOLDER} and target placeholder {TARGET_PLACEHOLDER} must be present in prompt_template.")

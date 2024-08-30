@@ -146,7 +146,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         if key_schema["type"] in [JSONSchemaKeyType.String, JSONSchemaKeyType.Number, JSONSchemaKeyType.Integer]:
             if "enum" in key_schema:
                 class_map = self._get_enum_class_map(key_schema["enum"])
-                if "includeGrounding" in key_schema:
+                if "includeGrounding" in key_schema and key_schema["includeGrounding"] is True:
                     self._assign_key_metric_map_values(key=key,
                                                        metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
                                                        metric_args={"iou_threshold": 0.5, "box_format": "xyxy", "coords": "absolute"},
@@ -162,7 +162,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
                                                    metric_args={"error_threshold": 0.0})
         elif key_schema["type"] == JSONSchemaKeyType.Boolean:
             class_map = self._get_enum_class_map([True, False])
-            if "includeGrounding" in key_schema:
+            if "includeGrounding" in key_schema and key_schema["includeGrounding"] is True:
                 self._assign_key_metric_map_values(key=key,
                                                    metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
                                                    metric_args={"iou_threshold": 0.5, "box_format": "xyxy", "coords": "absolute"},
@@ -177,7 +177,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             if key_schema["items"]["type"] in SIMPLE_KEY_TYPES:
                 if "enum" in key_schema["items"]:
                     class_map = self._get_enum_class_map(key_schema["items"]["enum"])
-                    if "includeGrounding" in key_schema["items"]:
+                    if "includeGrounding" in key_schema["items"] and key_schema["items"]["includeGrounding"] is True:
                         self._assign_key_metric_map_values(key=key,
                                                            metric_name=SupportedKeyWiseMetric.Detection_MicroPrecisionRecallF1,
                                                            metric_args={"iou_threshold": 0.5, "box_format": "xyxy", "coords": "absolute"},
