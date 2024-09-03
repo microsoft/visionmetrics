@@ -54,7 +54,7 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
         if positive_threshold < 0.0 or positive_threshold > 1.0:
             raise ValueError("Parameter positive_threshold should be between [0.0, 1.0], inclusive.")
         logger.info(f"Initializing evaluator with positive_threshold={positive_threshold}, negative_value={negative_value}, temperature={temperature}, max_tokens={max_tokens}, "
-                    "system_message=\"{system_message}\", prompt_template=\"{prompt_template}\"")
+                    f"system_message=\"{system_message}\", prompt_template=\"{prompt_template}\"")
         self.system_message = system_message
         self.prompt_template = prompt_template
         self.positive_threshold = positive_threshold
@@ -65,7 +65,7 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
         self.num_responses = num_responses
 
         self.model = OpenAITextChatModel(endpoint=endpoint, deployment_name=deployment_name, api_key=None, temperature=temperature, max_tokens=max_tokens,
-                                         requests_inverval=requests_interval, num_responses=num_responses, delimiter=MULTIPLE_RESPONSES_DELIMITER, system_message=system_message)
+                                         requests_interval=requests_interval, num_responses=num_responses, delimiter=MULTIPLE_RESPONSES_DELIMITER, system_message=system_message)
 
         self.add_state("predictions", default=[], dist_reduce_fx="cat")
         self.add_state("targets", default=[], dist_reduce_fx="cat")
