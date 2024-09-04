@@ -103,6 +103,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             self._populate_key_metric_map(key=key, key_schema=key_schema, key_trace=[key])
 
         super().__init__(key_metric_map=self.key_metric_map)
+        logger.info(f"Initialized KeyValuePairExtractionScore with schema {key_value_pair_schema}, endpoint {endpoint}, and deployment_name {deployment_name}.")
 
     def _get_enum_class_map(self, classes: list):
         """
