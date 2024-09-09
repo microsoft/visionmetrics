@@ -130,6 +130,7 @@ class KeyValuePairEvaluatorBase(Metric):
                 raise ValueError(f"Encountered error '{e}' when instantiating metric '{metric_name}' for key '{key}' with arguments '{metric_args}'.")
         self.invalid_predicted_keys = []
         self.missing_predicted_keys = []
+        logger.info(f"Initialized KeyValuePairEvaluatorBase with key_metric_map {key_metric_map} and key_evaluator_map {self.key_evaluator_map}.")
 
     def _get_invalid_keys(self, sample, key_trace: list = [], invalid_keys: list = []):
         if isinstance(sample, dict):
