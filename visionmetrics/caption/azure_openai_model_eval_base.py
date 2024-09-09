@@ -72,8 +72,8 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
         self.add_state("score_parse_failures", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("result_status_types", default=[], dist_reduce_fx="cat")
 
-        logger.info(f"Initialized AzureOpenAITextModelCategoricalEvaluatorBase with positive_threshold={positive_threshold}, negative_value={negative_value}, temperature={temperature}, max_tokens={max_tokens}, "
-                    f"system_message=\"{system_message}\", prompt_template=\"{prompt_template}\"")
+        logger.info(f"Initialized AzureOpenAITextModelCategoricalEvaluatorBase with positive_threshold={positive_threshold}, negative_value={negative_value}, temperature={temperature}, "
+                    f"max_tokens={max_tokens}, system_message=\"{system_message}\", prompt_template=\"{prompt_template}\"")
 
     def _get_numeric_score(self, raw_score: str):
         """
