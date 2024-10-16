@@ -56,7 +56,7 @@ class AzureOpenAITextModelCategoricalScore(AzureOpenAITextModelCategoricalEvalua
         see https://github.com/microsoft/irisml-tasks-azure-openai/blob/main/irisml/tasks/create_azure_openai_chat_model.py.
     """
     def __init__(self, endpoint: str, deployment_name: str, system_message=DEFAULT_SYSTEM_MESSAGE, prompt_template=DEFAULT_PROMPT_TEMPLATE,
-                 temperature=0.0, max_tokens=50, requests_interval=0, positive_threshold=0.5, negative_value=''):
+                 temperature=0.0, max_tokens=50, requests_interval=0, positive_threshold=0.5, negative_value='', api_version="2024-09-01-preview"):
         super().__init__(endpoint=endpoint,
                          deployment_name=deployment_name,
                          system_message=system_message,
@@ -65,4 +65,5 @@ class AzureOpenAITextModelCategoricalScore(AzureOpenAITextModelCategoricalEvalua
                          max_tokens=max_tokens,
                          requests_interval=requests_interval,
                          positive_threshold=positive_threshold,
-                         negative_value=negative_value)
+                         negative_value=negative_value,
+                         api_version=api_version)

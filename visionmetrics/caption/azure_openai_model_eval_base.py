@@ -47,7 +47,7 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
         see https://github.com/microsoft/irisml-tasks-azure-openai/blob/main/irisml/tasks/create_azure_openai_chat_model.py.
     """
     def __init__(self, endpoint: str, deployment_name: str, system_message: str, prompt_template: str,
-                 temperature=0.0, max_tokens=50, requests_interval=0, num_responses=1, positive_threshold=0.5, negative_value=''):
+                 temperature=0.0, max_tokens=50, requests_interval=0, num_responses=1, positive_threshold=0.5, negative_value='', api_version="2024-09-01-preview"):
         super().__init__()
         if PREDICTION_PLACEHOLDER not in prompt_template or TARGET_PLACEHOLDER not in prompt_template:
             raise ValueError("Both the predicted placeholder {PREDICTION_PLACEHOLDER} and target placeholder {TARGET_PLACEHOLDER} must be present in prompt_template.")
@@ -62,7 +62,7 @@ class AzureOpenAITextModelCategoricalEvaluatorBase(Metric):
             raise NotImplementedError("This metric currently only supports single-response scoring.")
         self.num_responses = num_responses
 
-        self.model = OpenAITextChatModel(endpoint=endpoint, deployment_name=deployment_name, api_key=None, temperature=temperature, max_tokens=max_tokens,
+        self.model = OpenAITextChatModel(endpoint=endpoint, deployment_name=deployment_name, api_version=api_version, api_key=None, temperature=temperature, max_tokens=max_tokens,
                                          requests_interval=requests_interval, num_responses=num_responses, delimiter=MULTIPLE_RESPONSES_DELIMITER, system_message=system_message)
 
         self.add_state("predictions", default=[], dist_reduce_fx="cat")
