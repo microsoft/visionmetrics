@@ -85,16 +85,18 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
 
         endpoint: string of the Azure OpenAI endpoint to be used as the default text evaluator.
         deployment_name: string of the Azure OpenAI deployment name to be used for the default text evaluator.
+        api_version: string of the API version to use with the Azure OpenAI endpoint and deployment.
 
         The latter two arguments follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel;
         see https://github.com/microsoft/irisml-tasks-azure-openai/blob/main/irisml/tasks/create_azure_openai_chat_model.py.
     """
-    def __init__(self, key_value_pair_schema: dict, endpoint: str, deployment_name: str):
+    def __init__(self, key_value_pair_schema: dict, endpoint: str, deployment_name: str, api_version: str = "2024-09-01-preview"):
         if not isinstance(key_value_pair_schema, dict):
             raise ValueError("key_value_pair_schema must be a dictionary in JSON Schema format specifying the schema for the dataset.")
         self.key_value_pair_schema = key_value_pair_schema
         self.endpoint = endpoint
         self.deployment_name = deployment_name
+        self.api_version = api_version
 
         # Parse the schema and map each key to a metric
         self.key_metric_map = {}
@@ -197,7 +199,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
             # Use text as the default metric for all keys; 'object' key type should not have its own key
             self._assign_key_metric_map_values(key=key,
                                                metric_name=SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
-                                               metric_args={"endpoint": self.endpoint, "deployment_name": self.deployment_name})
+                                               metric_args={"endpoint": self.endpoint, "deployment_name": self.deployment_name, "api_version": self.api_version})
             logger.debug(f"Using default metric '{SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore.value}' for key '{key}'.")
 
         if key in self.key_metric_map:

@@ -7,6 +7,7 @@ from visionmetrics.key_value_pair.key_value_pair_eval import KeyValuePairExtract
 class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     ENDPOINT = "https://endpoint-name.openai.azure.com/"
     DEPLOYMENT = "gpt-4o"
+    API_VERSION = "2024-08-01-preview"  # Set it to be different from the default
     simple_schema = {
         "image_description": {
             "type": "string",
@@ -39,7 +40,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     simple_key_metric_map = {
         "image_description": {
             "metric_name": SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
-            "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT},
+            "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT, "api_version": API_VERSION},
             "key_trace": ["image_description"]
         },
         "number_of_chinchillas": {
@@ -137,7 +138,7 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     complex_list_key_metric_map = {
         "defects": {
             "metric_name": SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
-            "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT},
+            "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT, "api_version": API_VERSION},
             "key_trace": ["defects"]
         }
     }
@@ -184,22 +185,22 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
         },
         "chart_title": {
             "metric_name": SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
-            "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT},
+            "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT, "api_version": API_VERSION},
             "key_trace": ["chart_title"]
         },
         "chart_axes_x_axis_title": {
             "metric_name": SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
-            "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT},
+            "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT, "api_version": API_VERSION},
             "key_trace": ["chart_axes", "value", "x_axis_title"]
         },
         "chart_axes_y_axis_title": {
             "metric_name": SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
-            "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT},
+            "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT, "api_version": API_VERSION},
             "key_trace": ["chart_axes", "value", "y_axis_title"]
         },
         "chart_axes_x_axis_units": {
             "metric_name": SupportedKeyWiseMetric.Caption_AzureOpenAITextModelCategoricalScore,
-            "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT},
+            "metric_args": {"endpoint": ENDPOINT, "deployment_name": DEPLOYMENT, "api_version": API_VERSION},
             "key_trace": ["chart_axes", "value", "x_axis_units"]
         }
     }
@@ -262,7 +263,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_two_images_simple_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.simple_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["1.0"]):
             for key in self.simple_key_metric_map:
                 for field in self.simple_key_metric_map[key]:
@@ -311,7 +313,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_simple_list_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.simple_list_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["1.0"]):
             for key in self.simple_list_key_metric_map:
                 for field in self.simple_list_key_metric_map[key]:
@@ -340,7 +343,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_simple_list_grounding_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.simple_list_grounding_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["1.0"]):
             for key in self.simple_list_grounding_key_metric_map:
                 for field in self.simple_list_grounding_key_metric_map[key]:
@@ -366,7 +370,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_complex_list_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_list_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["0.0"]):
             for key in self.complex_list_key_metric_map:
                 for field in self.complex_list_key_metric_map[key]:
@@ -392,7 +397,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_simple_object_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.simple_object_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["1.0"]):
             for key in self.simple_object_key_metric_map:
                 for field in self.simple_object_key_metric_map[key]:
@@ -431,7 +437,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_complex_object_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         for key in self.complex_object_key_metric_map:
             for field in self.complex_object_key_metric_map[key]:
                 self.assertEqual(evaluator.key_metric_map[key][field], self.complex_object_key_metric_map[key][field])
@@ -470,7 +477,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_prediction_missing_key(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         evaluator.update(predictions=[{
                             "brand_sentiment": {"value": {
                                 "contoso_specific": {"value": {
@@ -503,7 +511,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_target_missing_key(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         self.assertRaisesRegex(ValueError,
                                r"The key 'brand_sentiment_contoso_specific_logos' does not exist in the target sample "
                                r"'{'brand_sentiment': {'value': {'has_non_contoso_brands': {'value': True}, "
@@ -533,7 +542,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_prediction_invalid_keys(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         evaluator.update(predictions=[{
                             "brand_sentiment": {"value": {
                                 "has_non_contoso_brands": {"value": True},
@@ -569,7 +579,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_target_invalid_keys(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         self.assertRaisesRegex(ValueError,
                                r"The target sample '{'brand_sentiment': {'value': {'has_non_contoso_brands': {'value': True}, 'contoso_specific': "
                                r"{'value': {'sentiment': {'value': 'very positive'}, 'logos': {'value': \[{'value': 'text', 'groundings': \[\[0, 0, 100, 100\]\]}\]}, "
@@ -605,7 +616,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_two_images_nested_object_schema(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         for key in self.complex_object_key_metric_map:
             for field in self.complex_object_key_metric_map[key]:
                 self.assertEqual(evaluator.key_metric_map[key][field], self.complex_object_key_metric_map[key][field])
@@ -664,7 +676,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_two_images_prediction_invalid_keys(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         for key in self.complex_object_key_metric_map:
             for field in self.complex_object_key_metric_map[key]:
                 self.assertEqual(evaluator.key_metric_map[key][field], self.complex_object_key_metric_map[key][field])
@@ -726,7 +739,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_two_images_prediction_wrong_invalid_keys(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.complex_object_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         for key in self.complex_object_key_metric_map:
             for field in self.complex_object_key_metric_map[key]:
                 self.assertEqual(evaluator.key_metric_map[key][field], self.complex_object_key_metric_map[key][field])
@@ -785,7 +799,8 @@ class TestKeyValuePairExtractionEvaluator(unittest.TestCase):
     def test_simple_schema_batch_update(self):
         evaluator = KeyValuePairExtractionScore(key_value_pair_schema=self.simple_schema,
                                                 endpoint=self.ENDPOINT,
-                                                deployment_name=self.DEPLOYMENT)
+                                                deployment_name=self.DEPLOYMENT,
+                                                api_version=self.API_VERSION)
         with unittest.mock.patch.object(OpenAITextChatModel, "forward", return_value=["1.0"]):
             for key in self.simple_key_metric_map:
                 for field in self.simple_key_metric_map[key]:
