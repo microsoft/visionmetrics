@@ -90,7 +90,7 @@ class KeyValuePairExtractionScore(KeyValuePairEvaluatorBase):
         The latter two arguments follow the standards of irisml.tasks.create_azure_openai_chat_model.OpenAITextChatModel;
         see https://github.com/microsoft/irisml-tasks-azure-openai/blob/main/irisml/tasks/create_azure_openai_chat_model.py.
     """
-    def __init__(self, key_value_pair_schema: dict, endpoint: str, deployment_name: str, api_version: str="2024-09-01-preview"):
+    def __init__(self, key_value_pair_schema: dict, endpoint: str, deployment_name: str, api_version: str = "2024-09-01-preview"):
         if not isinstance(key_value_pair_schema, dict):
             raise ValueError("key_value_pair_schema must be a dictionary in JSON Schema format specifying the schema for the dataset.")
         self.key_value_pair_schema = key_value_pair_schema
